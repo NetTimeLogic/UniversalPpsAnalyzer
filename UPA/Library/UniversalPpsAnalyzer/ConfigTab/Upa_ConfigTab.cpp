@@ -1,0 +1,332 @@
+//*****************************************************************************************
+// Project:     UniversalPpsAnalyzer
+//
+// Author:      Sven Meier, NetTimeLogic GmbH
+//
+// License:     Copyright (c) 2017, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
+//              All rights reserved.
+//
+//              THIS PROGRAM IS FREE SOFTWARE: YOU CAN REDISTRIBUTE IT AND/OR MODIFY
+//              IT UNDER THE TERMS OF THE GNU LESSER GENERAL PUBLIC LICENSE AS
+//              PUBLISHED BY THE FREE SOFTWARE FOUNDATION, VERSION 3.
+//
+//              THIS PROGRAM IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+//              WITHOUT ANY WARRANTY; WITHOUT EVEN THE IMPLIED WARRANTY OF
+//              MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. SEE THE GNU
+//              LESSER GENERAL LESSER PUBLIC LICENSE FOR MORE DETAILS.
+//
+//              YOU SHOULD HAVE RECEIVED A COPY OF THE GNU LESSER GENERAL PUBLIC LICENSE
+//              ALONG WITH THIS PROGRAM. IF NOT, SEE <http://www.gnu.org/licenses/>.
+//
+//*****************************************************************************************
+
+#include <Upa_ConfigTab.h>
+#include <ui_Upa_ConfigTab.h>
+
+Upa_ConfigTab::Upa_ConfigTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
+{
+    upa = parent;
+
+    ui = new Ui::Upa_ConfigTab();
+    ui->setupUi(this);
+
+    config_timer = new QTimer(this);
+    config_timer->stop();
+
+    cout << "INFO: " << "Available Ports:" << endl;
+
+    connect(ui->ConfigConnectButton, SIGNAL(clicked()), this, SLOT(config_connect_button_clicked()));
+    connect(ui->ConfigFullScreenButton, SIGNAL(clicked()), this, SLOT(config_full_screen_button_clicked()));
+    connect(config_timer, SIGNAL(timeout()), this, SLOT(config_com_port_check_timer()));
+}
+
+Upa_ConfigTab::~Upa_ConfigTab()
+{
+    config_timer->stop();
+    if (upa->pps_tab != 0)
+    {
+        delete(upa->pps_tab);
+        upa->pps_tab = 0;
+    }
+    delete ui;
+    delete config_timer;
+}
+
+int Upa_ConfigTab::config_resize(int height, int width)
+{
+    int height_delta = 0;
+    int width_delta = 0;
+
+    height_delta = (height-Upa_MainHeight);
+    width_delta = (width-Upa_MainWidth);
+
+    ui->ConfigAddressMapValue->setFixedHeight(630+height_delta);
+    ui->ConfigAddressMapValue->setFixedWidth(1340+width_delta);
+
+    updateGeometry();
+
+    return 0;
+}
+
+void Upa_ConfigTab::config_connect_button_clicked(void)
+{
+    QList<QSerialPortInfo> com_ports = QSerialPortInfo::availablePorts();
+    long long* temp_ref_offset;
+    unsigned int core_count;
+    unsigned int temp_data = 0;
+    Upa_CommunicationLib* temp_com_lib;
+    Upa_CoreConfig temp_config;
+    QString com_port;
+    QString temp_string;
+
+    if (ui->ConfigConnectButton->text() == "Connect")
+    {
+        ui->ConfigConnectButton->setEnabled(false);
+        //********************************
+        // com
+        //********************************
+        for (int k = 0; k < com_ports.size(); k++)
+        {
+            com_port = com_ports[k].portName();
+            temp_com_lib = new(Upa_CommunicationLib);
+            if (0 == temp_com_lib->open_port(com_port))
+            {
+                temp_ref_offset = new(long long);
+                *temp_ref_offset = 0;
+                core_count = 0;
+
+                // Advanced Tab
+                upa->advanced_tab->advanced_enable();
+
+                for (int i = 0; i < 256; i++)
+                {
+                    if (0 == temp_com_lib->read_reg((0x00000000 + ((i * Upa_Config_BlockSize) + Upa_Config_TypeInstanceReg)), temp_data))
+                    {
+                        if ((i == 0) &&
+                            ((((temp_data >> 16) & 0x0000FFFF) != Upa_CoreConfig_ConfSlaveCoreType) ||
+                             (((temp_data >> 0) & 0x0000FFFF) != 1)))
+                        {
+                            cout << "ERROR: " << "not a conf block at the address expected" << endl;
+                            break;
+                        }
+                        else if (temp_data == 0)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            temp_config.core_type = ((temp_data >> 16) & 0x0000FFFF);
+                            temp_config.core_instance_nr = ((temp_data >> 0) & 0x0000FFFF);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    if (0 == temp_com_lib->read_reg((0x00000000 + ((i * Upa_Config_BlockSize) + Upa_Config_BaseAddrLReg)), temp_data))
+                    {
+                        temp_config.address_range_low = temp_data;
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    if (0 == temp_com_lib->read_reg((0x00000000 + ((i * Upa_Config_BlockSize) + Upa_Config_BaseAddrHReg)), temp_data))
+                    {
+                        temp_config.address_range_high= temp_data;
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    if (0 == temp_com_lib->read_reg((0x00000000 + ((i * Upa_Config_BlockSize) + Upa_Config_IrqMaskReg)), temp_data))
+                    {
+                        temp_config.interrupt_mask = temp_data;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    temp_config.com_port = com_port;
+                    temp_config.com_lib = temp_com_lib;
+                    temp_config.ref_offset = temp_ref_offset;
+
+                    if (temp_config.core_type == Ucm_CoreConfig_ClkSignalTimestamperCoreType)
+                    {
+                        core_count++;
+                        upa->core_config.append(temp_config);
+                    }
+                }
+
+                if (core_count == 0)
+                {
+                    temp_com_lib->close_port();
+                    delete(temp_com_lib);
+                    delete(temp_ref_offset);
+                }
+                else
+                {
+                    upa->com_lib.append(temp_com_lib);
+                }
+            }
+            else
+            {
+                delete(temp_com_lib);
+            }
+        }
+
+        //********************************
+        // config
+        //********************************
+        if (false == upa->core_config.isEmpty())
+        {
+            ui->ConfigAddressMapValue->clear();
+        }
+        else
+        {
+            cout << "ERROR: " << "no device found" << endl;
+            temp_string.append("NA");
+            QMessageBox::information(this, tr("Connect"), tr("No device found"));
+            ui->ConfigConnectButton->setEnabled(true);
+            return;
+        }
+
+        for (int i = 0; i < upa->core_config.size(); i++)
+        {
+            temp_string.append("0x");
+            temp_string.append(QString("%1").arg(upa->core_config.at(i).address_range_low, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(" - ");
+            temp_string.append("0x");
+            temp_string.append(QString("%1").arg(upa->core_config.at(i).address_range_high, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(", ");
+            temp_string.append("InstNr: ");
+            temp_string.append(QString("%1").arg(upa->core_config.at(i).core_instance_nr, 4, 10, QLatin1Char('0')).toUpper());
+            temp_string.append(", ");
+            temp_string.append("Type: ");
+
+            switch (upa->core_config.at(i).core_type)
+            {
+            case Upa_CoreConfig_ConfSlaveCoreType:
+                break;
+            case Ucm_CoreConfig_ClkSignalTimestamperCoreType:
+                temp_string.append("CLK SignalTimestamper");
+                break;
+             default:
+                break;
+            }
+            temp_string.append(", ");
+            temp_string.append("Com Port: ");
+            temp_string.append(upa->core_config.at(i).com_port);
+            temp_string.append("\n");
+        }
+
+        ui->ConfigAddressMapValue->setText(temp_string);
+
+
+        // Pps Tab
+        upa->pps_tab = new Upa_PpsTab(upa);
+        upa->Upa_MainTab->addTab(upa->pps_tab, "Pps");
+        QSize new_size = upa->Upa_MainWindow->size();
+        upa->pps_tab->pps_resize((new_size.height()+21), new_size.width());
+        upa->pps_tab->pps_enable();
+
+        config_timer->start(2000);
+        ui->ConfigConnectButton->setText("Disconnect");
+        ui->ConfigConnectButton->setEnabled(true);
+
+    }
+    else
+    {
+        ui->ConfigConnectButton->setEnabled(false);
+        // Config Tab
+        ui->ConfigAddressMapValue->setText("NA");
+        config_timer->stop();
+        ui->ConfigConnectButton->setText("Connect");
+        //Remove all other tabs
+        while (upa->Upa_MainTab->count() > 2)
+        {
+            upa->Upa_MainTab->removeTab(2);
+        }
+
+        //PPS Tab
+        upa->pps_tab->pps_disable();
+        delete(upa->pps_tab);
+        upa->pps_tab = NULL;
+        upa->core_config.clear();
+
+        //Delete Ref offset for this board
+        for (int i = 0; i < upa->core_config.size(); i++)
+        {
+            if (upa->core_config.at(i).core_instance_nr == 1)
+            {
+                delete(upa->core_config.at(i).ref_offset);
+            }
+        }
+
+        // Advanced Tab
+        upa->advanced_tab->advanced_disable();
+        for (int i = 0; i < upa->com_lib.size(); i++)
+        {
+            if (0 == upa->com_lib.at(i)->close_port())
+            {
+                // nothing
+            }
+        }
+        for (int i = 0; i < upa->com_lib.size(); i++)
+        {
+            delete(upa->com_lib.at(i));
+        }
+        upa->com_lib.clear();
+        ui->ConfigConnectButton->setEnabled(true);
+    }
+}
+
+void Upa_ConfigTab::config_full_screen_button_clicked(void)
+{
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect  screenGeometry = screen->geometry();
+    int height = screenGeometry.height();
+    int width = screenGeometry.width();
+
+    if (ui->ConfigFullScreenButton->text() == "Full Screen")
+    {
+        upa->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint);
+        upa->showFullScreen();
+        ui->ConfigFullScreenButton->setText("Normal Screen");
+    }
+    else
+    {
+        upa->setWindowFlags(Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint);
+        upa->showNormal();
+        ui->ConfigFullScreenButton->setText("Full Screen");
+        if (height > (Upa_MainHeight+2))
+        {
+            height = (Upa_MainHeight+2);
+        }
+        if (width > Upa_MainWidth)
+        {
+            width = Upa_MainWidth;
+        }
+        upa->resize(width, height);
+    }
+
+}
+
+void Upa_ConfigTab::config_com_port_check_timer(void)
+{
+    for (int i = 0; i < upa->com_lib.size(); i++)
+    {
+        if (0 == upa->com_lib.at(i)->check_port())
+        {
+            // nothing
+        }
+        else
+        {
+            cout << "ERROR: " << "port is not ok anymore" << endl;
+            //upa->com_lib.at(i)->close_port();
+        }
+    }
+}
