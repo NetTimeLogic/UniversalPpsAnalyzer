@@ -547,6 +547,7 @@ void Upa_PpsTab::pps_compensate_values_button_clicked(void)
 
 void Upa_PpsTab::pps_delay_button_clicked(void)
 {
+    ui_delay->pps_reload();
     ui_delay->show();
 }
 

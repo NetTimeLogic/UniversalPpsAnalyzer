@@ -42,6 +42,11 @@ void Upa_PpsDelayScreen::pps_done_button_clicked(void)
     close();
 }
 
+void Upa_PpsDelayScreen::pps_reload(void)
+{
+    pps_analyzer_changed(0);
+}
+
 void Upa_PpsDelayScreen::pps_change_delays_button_clicked(void)
 {
     for (int i = 0; i < pps_tab->upa->core_config.size(); i++)

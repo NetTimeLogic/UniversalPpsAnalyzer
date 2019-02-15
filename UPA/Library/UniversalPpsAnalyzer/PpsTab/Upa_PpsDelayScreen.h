@@ -21,6 +21,7 @@ public:
     //explicit Upa_PpsDelayScreen(QWidget *parent = nullptr);
     Upa_PpsDelayScreen(Upa_PpsTab* parent);
     ~Upa_PpsDelayScreen();
+    void pps_reload(void);
 
     Ui::Upa_PpsDelayScreen *ui;
 
