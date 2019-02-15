@@ -35,6 +35,7 @@ SOURCES += main.cpp\
     Upa_UniversalPpsAnalyzer.cpp \
     CommunicationLib/Upa_CommunicationLib.cpp \
     CoreConfig/Upa_CoreConfig.cpp \
+    PpsTab/Upa_PpsDelayScreen.cpp \
     PpsTab/Upa_PpsTab.cpp \
     AdvancedTab/Upa_AdvancedTab.cpp \
     ConfigTab/Upa_ConfigTab.cpp
@@ -42,12 +43,14 @@ SOURCES += main.cpp\
 HEADERS  += Upa_UniversalPpsAnalyzer.h \
     CommunicationLib/Upa_CommunicationLib.h \
     CoreConfig/Upa_CoreConfig.h \
+    PpsTab/Upa_PpsDelayScreen.h \
     PpsTab/Upa_PpsTab.h \
     AdvancedTab/Upa_AdvancedTab.h \
     ConfigTab/Upa_ConfigTab.h \
     DebugStream/Upa_DebugStream.h
 
 FORMS    += Upa_UniversalPpsAnalyzer.ui \
+    PpsTab/Upa_PpsDelayScreen.ui \
     PpsTab/Upa_PpsTab.ui \
     AdvancedTab/Upa_AdvancedTab.ui \
     ConfigTab/Upa_ConfigTab.ui

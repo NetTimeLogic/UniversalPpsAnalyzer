@@ -31,8 +31,10 @@
 #include <QtCore/QDateTime>
 #include <QtCharts/QValueAxis>
 #include <Upa_UniversalPpsAnalyzer.h>
+#include <Upa_PpsDelayScreen.h>
 
 class Upa_UniversalPpsAnalyzer;
+class Upa_PpsDelayScreen;
 
 #define Upa_ClkTs_ControlReg                            0x00000000
 #define Upa_ClkTs_StatusReg                             0x00000004
@@ -50,6 +52,7 @@ class Upa_UniversalPpsAnalyzer;
 
 namespace Ui {
 class Upa_PpsTab;
+class Upa_PpsDelayScreen;
 }
 
 using namespace QtCharts;
@@ -70,9 +73,11 @@ public:
     Upa_UniversalPpsAnalyzer* upa;
     QList<QLineSeries*> pps_offset_series;
     QList<unsigned int*> pps_offset_number_of_points;
+    QList<int*> pps_offset_delays;
 
 private:
     Ui::Upa_PpsTab *ui;
+    Upa_PpsDelayScreen* ui_delay;
 
     // PPS tab
     QTimer* pps_timer;
@@ -93,6 +98,7 @@ private slots:
     void pps_log_button_clicked(void);
     void pps_compensate_values_button_clicked(void);
     void pps_read_values_timer(void);
+    void pps_delay_button_clicked(void);
 };
 
 #endif // UPA_PPS_H

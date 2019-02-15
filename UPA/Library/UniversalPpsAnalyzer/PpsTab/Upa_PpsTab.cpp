@@ -24,11 +24,13 @@
 
 #include <Upa_PpsTab.h>
 #include <ui_Upa_PpsTab.h>
+#include <ui_Upa_PpsDelayScreen.h>
 
 Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
 {
     QString temp_string;
     unsigned int* temp_number_of_points;
+    int* temp_delay;
     upa = parent;
     unsigned int temp_data = 0;
     unsigned int temp_addr = 0;
@@ -46,6 +48,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     connect(ui->PpsSaveButton, SIGNAL(clicked()), this, SLOT(pps_save_button_clicked()));
     connect(ui->PpsLogButton, SIGNAL(clicked()), this, SLOT(pps_log_button_clicked()));
     connect(ui->PpsCompensateValuesButton, SIGNAL(clicked()), this, SLOT(pps_compensate_values_button_clicked()));
+    connect(ui->PpsChangeDelaysButton, SIGNAL(clicked()), this, SLOT(pps_delay_button_clicked()));
     connect(pps_timer, SIGNAL(timeout()), this, SLOT(pps_read_values_timer()));
 
     for (int i = 0; i < upa->core_config.size(); i++)
@@ -90,6 +93,9 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         temp_line_series->setName(temp_string);
         temp_number_of_points = new(unsigned int);
         *temp_number_of_points = 0;
+        temp_delay = new(int);
+        *temp_delay = 0;
+        pps_offset_delays.append(temp_delay);
         pps_offset_number_of_points.append(temp_number_of_points);
         pps_offset_series.append(temp_line_series);
     }
@@ -128,6 +134,8 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     pps_offset_chart_view->setRenderHint(QPainter::Antialiasing);
 
     ui->PpsOffsetChartLayout->addWidget(pps_offset_chart_view, 0, 0);
+
+    ui_delay = new Upa_PpsDelayScreen(this);
 
     pps_offset_chart->legend()->setVisible(true);
 }
@@ -176,12 +184,15 @@ Upa_PpsTab::~Upa_PpsTab()
     }
 
     delete ui;
+    ui_delay->close();
+    delete ui_delay;
     delete pps_timer;
     for (int i = 0; i < upa->core_config.size(); i++)
     {
         delete pps_offset_number_of_points.at(i);
         delete pps_offset_series.at(i);
     }
+    pps_offset_delays.clear();
     pps_offset_number_of_points.clear();
     pps_offset_series.clear();
 
@@ -297,11 +308,13 @@ void Upa_PpsTab::pps_read_values(void)
 
                 if (upa->core_config.at(k).core_instance_nr == 1)
                 {
-                    *(upa->core_config.at(k).ref_offset) = temp_signed_offset;
+                    *(upa->core_config.at(k).ref_offset) = temp_signed_offset + *(pps_offset_delays.at(k));
+                    temp_signed_offset = temp_signed_offset - *(pps_offset_delays.at(k));
                 }
                 else if (compensate_values == 1)
                 {
                     temp_signed_offset = temp_signed_offset - *(upa->core_config.at(k).ref_offset);
+                    temp_signed_offset = temp_signed_offset - *(pps_offset_delays.at(k));
                 }
 
                 pps_offset_series.at(k)->append(*pps_offset_number_of_points.at(k), temp_signed_offset);
@@ -531,6 +544,12 @@ void Upa_PpsTab::pps_compensate_values_button_clicked(void)
         ui->PpsCompensateValuesButton->setText("Raw Values");
     }
 }
+
+void Upa_PpsTab::pps_delay_button_clicked(void)
+{
+    ui_delay->show();
+}
+
 
 void Upa_PpsTab::pps_read_values_timer(void)
 {

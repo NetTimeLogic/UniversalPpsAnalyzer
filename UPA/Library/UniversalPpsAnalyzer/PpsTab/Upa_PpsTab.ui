@@ -130,6 +130,22 @@
     <string>Start Log</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="PpsChangeDelaysButton">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>20</y>
+     <width>120</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Change Delays</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
