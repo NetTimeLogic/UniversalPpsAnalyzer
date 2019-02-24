@@ -2,9 +2,6 @@
 #include <Upa_PpsTab.h>
 #include <ui_Upa_PpsDelayScreen.h>
 
-//Upa_PpsDelayScreen::Upa_PpsDelayScreen(QWidget *parent) :
-//    QWidget(parent),
-//    ui(new Ui::Upa_PpsDelayScreen)
 Upa_PpsDelayScreen::Upa_PpsDelayScreen(Upa_PpsTab *parent) : QWidget()
 {
     pps_tab = parent;

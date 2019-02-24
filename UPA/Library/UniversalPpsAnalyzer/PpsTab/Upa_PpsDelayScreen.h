@@ -18,7 +18,6 @@ private:
     Upa_PpsTab* pps_tab;
 
 public:
-    //explicit Upa_PpsDelayScreen(QWidget *parent = nullptr);
     Upa_PpsDelayScreen(Upa_PpsTab* parent);
     ~Upa_PpsDelayScreen();
     void pps_reload(void);

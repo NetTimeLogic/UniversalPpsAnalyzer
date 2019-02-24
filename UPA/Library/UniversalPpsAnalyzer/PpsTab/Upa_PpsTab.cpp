@@ -111,9 +111,9 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
 
     QValueAxis* pps_offset_chart_x_axis = new QValueAxis;
     pps_offset_chart_x_axis->setLabelFormat("%i");
-    pps_offset_chart_x_axis->setTickCount(20);
+    pps_offset_chart_x_axis->setTickCount(21);
     pps_offset_chart_x_axis->setMin(0);
-    pps_offset_chart_x_axis->setMax(99);
+    pps_offset_chart_x_axis->setMax(100);
     pps_offset_chart->addAxis(pps_offset_chart_x_axis, Qt::AlignBottom);
     for (int i = 0; i < upa->core_config.size(); i++)
     {
@@ -122,9 +122,9 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
 
     QValueAxis* pps_offset_chart_y_axis = new QValueAxis;
     pps_offset_chart_y_axis->setLabelFormat("%i");
-    pps_offset_chart_y_axis->setTickCount(10);
-    pps_offset_chart_y_axis->setMin(-500);
-    pps_offset_chart_y_axis->setMax(500);
+    pps_offset_chart_y_axis->setTickCount(11);
+    pps_offset_chart_y_axis->setMin(-100);
+    pps_offset_chart_y_axis->setMax(100);
     pps_offset_chart->addAxis(pps_offset_chart_y_axis, Qt::AlignLeft);
     for (int i = 0; i < upa->core_config.size(); i++)
     {
@@ -189,6 +189,7 @@ Upa_PpsTab::~Upa_PpsTab()
     delete pps_timer;
     for (int i = 0; i < upa->core_config.size(); i++)
     {
+        delete pps_offset_delays.at(i);
         delete pps_offset_number_of_points.at(i);
         delete pps_offset_series.at(i);
     }
@@ -318,7 +319,7 @@ void Upa_PpsTab::pps_read_values(void)
                 }
 
                 pps_offset_series.at(k)->append(*pps_offset_number_of_points.at(k), temp_signed_offset);
-                if (*pps_offset_number_of_points.at(k) < 100)
+                if (*pps_offset_number_of_points.at(k) < 102)
                 {
                     *pps_offset_number_of_points.at(k) = *pps_offset_number_of_points.at(k) + 1;
                 }
@@ -350,7 +351,7 @@ void Upa_PpsTab::pps_read_values(void)
             {
                 pps_offset_series.at(k)->append(*pps_offset_number_of_points.at(k), 0);
             }
-            if (*pps_offset_number_of_points.at(k) < 100)
+            if (*pps_offset_number_of_points.at(k) < 102)
             {
                 *pps_offset_number_of_points.at(k) = *pps_offset_number_of_points.at(k) + 1;
             }
@@ -396,7 +397,7 @@ void Upa_PpsTab::pps_read_values(void)
 
     for (int k = 0; k < upa->core_config.size(); k++)
     {
-        if (*pps_offset_number_of_points.at(k) >= 100)
+        if (*pps_offset_number_of_points.at(k) >= 102)
         {
             for (int j = 1; j < pps_offset_series.at(k)->count(); j++)
             {
@@ -449,8 +450,8 @@ void Upa_PpsTab::pps_clear_button_clicked(void)
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
     }
-    pps_offset_chart->axisY()->setMin(-500);
-    pps_offset_chart->axisY()->setMax(500);
+    pps_offset_chart->axisY()->setMin(-100);
+    pps_offset_chart->axisY()->setMax(100);
 
     pps_offset_chart->show();
 }
@@ -549,7 +550,8 @@ void Upa_PpsTab::pps_delay_button_clicked(void)
 {
     ui_delay->pps_reload();
     ui_delay->show();
-}
+    ui_delay->activateWindow();
+    ui_delay->raise();}
 
 
 void Upa_PpsTab::pps_read_values_timer(void)
