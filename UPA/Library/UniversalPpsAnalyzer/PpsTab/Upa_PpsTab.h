@@ -74,6 +74,7 @@ public:
     QList<QLineSeries*> pps_offset_series;
     QList<unsigned int*> pps_offset_number_of_points;
     QList<int*> pps_offset_delays;
+    QList<int*> pps_offset_show;
 
 private:
     Ui::Upa_PpsTab *ui;

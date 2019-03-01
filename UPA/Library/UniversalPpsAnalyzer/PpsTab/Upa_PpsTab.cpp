@@ -31,6 +31,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     QString temp_string;
     unsigned int* temp_number_of_points;
     int* temp_delay;
+    int* temp_show;
     upa = parent;
     unsigned int temp_data = 0;
     unsigned int temp_addr = 0;
@@ -67,8 +68,45 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         else
         {
             temp_string.append(QString("%1").arg((upa->core_config.at(i).core_instance_nr-1), 2, 10, QLatin1Char('0')).toUpper());
-            QColor* temp_color = new QColor((Qt::GlobalColor)(((upa->core_config.at(i).core_instance_nr-2)%12)+7));
-            temp_line_series->setColor(*temp_color);
+            QColor temp_color;
+            switch (upa->core_config.at(i).core_instance_nr-2) // only 8 PPS per analyzer
+            {
+                case 0:
+                    temp_color.setRgb(255, 64, 64);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 1:
+                    temp_color.setRgb(64, 255, 64);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 2:
+                    temp_color.setRgb(64, 64, 255);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 3:
+                    temp_color.setRgb(255, 64, 255);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 4:
+                    temp_color.setRgb(160, 64, 64);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 5:
+                    temp_color.setRgb(64, 160, 64);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 6:
+                    temp_color.setRgb(64, 64, 160);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                case 7:
+                    temp_color.setRgb(160, 64, 160);
+                    temp_line_series->setColor(temp_color);
+                    break;
+                default:
+                    temp_line_series->setColor(Qt::black);
+                    break;
+            }
         }
 
         temp_addr =  upa->core_config.at(i).address_range_low;
@@ -95,6 +133,9 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         *temp_number_of_points = 0;
         temp_delay = new(int);
         *temp_delay = 0;
+        temp_show = new(int);
+        *temp_show = 1;
+        pps_offset_show.append(temp_show);
         pps_offset_delays.append(temp_delay);
         pps_offset_number_of_points.append(temp_number_of_points);
         pps_offset_series.append(temp_line_series);
@@ -136,6 +177,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     ui->PpsOffsetChartLayout->addWidget(pps_offset_chart_view, 0, 0);
 
     ui_delay = new Upa_PpsDelayScreen(this);
+    ui_delay->pps_reload();
 
     pps_offset_chart->legend()->setVisible(true);
 }
@@ -189,10 +231,12 @@ Upa_PpsTab::~Upa_PpsTab()
     delete pps_timer;
     for (int i = 0; i < upa->core_config.size(); i++)
     {
+        delete pps_offset_show.at(i);
         delete pps_offset_delays.at(i);
         delete pps_offset_number_of_points.at(i);
         delete pps_offset_series.at(i);
     }
+    pps_offset_show.clear();
     pps_offset_delays.clear();
     pps_offset_number_of_points.clear();
     pps_offset_series.clear();
@@ -408,37 +452,70 @@ void Upa_PpsTab::pps_read_values(void)
         }
     }
 
-    temp_min = 0;
-    temp_max = 0;
-    for (int k = 0; k < upa->core_config.size(); k++)
+    if (ui->PpsFixedScaleCheckBox->isChecked() == false)
     {
-        for (int j = 0; j < pps_offset_series.at(k)->count(); j++)
+        temp_min = 0;
+        temp_max = 0;
+        for (int k = 0; k < upa->core_config.size(); k++)
         {
-            QPointF temp_point = pps_offset_series.at(k)->at(j);
-            if (temp_min > temp_point.y())
+            for (int j = 0; j < pps_offset_series.at(k)->count(); j++)
             {
-                temp_min = temp_point.y();
-            }
-            if (temp_max < temp_point.y())
-            {
-                temp_max = temp_point.y();
+                if (*(pps_offset_show.at(k)) != 0) // only for those who are shown we care for the scaling
+                {
+                    QPointF temp_point = pps_offset_series.at(k)->at(j);
+                    if (temp_min > temp_point.y())
+                    {
+                        temp_min = temp_point.y();
+                    }
+                    if (temp_max < temp_point.y())
+                    {
+                        temp_max = temp_point.y();
+                    }
+                }
             }
         }
+        temp_max = (temp_max * 5) / 4;
+        temp_max = temp_max + (100 - temp_max%100);
+        temp_min = (temp_min * 5) / 4;
+        temp_min = temp_min - (100 - abs(temp_min)%100);
+        if (temp_max > 100000)
+        {
+            temp_max = 100000;
+        }
+        if (temp_min < -100000)
+        {
+            temp_min = -100000;
+        }
     }
-    temp_max = (temp_max * 5) / 4;
-    temp_max = temp_max + (100 - temp_max%100);
-    temp_min = (temp_min * 5) / 4;
-    temp_min = temp_min - (100 - abs(temp_min)%100);
-    if (temp_max > 100000)
+    else
     {
-        temp_max = 100000;
-    }
-    if (temp_min < -100000)
-    {
-        temp_min = -100000;
+        temp_max = ui->PpsMaxScaleValue->text().toInt(nullptr, 10);
+        temp_min = ui->PpsMinScaleValue->text().toInt(nullptr, 10);
+        if (temp_max > 100000)
+        {
+            temp_max = 100000;
+            ui->PpsMaxScaleValue->setText(QString::number(temp_max));
+        }
+        if (temp_min < -100000)
+        {
+            temp_min = -100000;
+            ui->PpsMinScaleValue->setText(QString::number(temp_min));
+        }
     }
     pps_offset_chart->axisY()->setMin(temp_min);
     pps_offset_chart->axisY()->setMax(temp_max);
+
+    for (int k = 0; k < upa->core_config.size(); k++)
+    {
+        if (*(pps_offset_show.at(k)) == 0)
+        {
+            pps_offset_series.at(k)->hide();
+        }
+        else
+        {
+            pps_offset_series.at(k)->show();
+        }
+    }
 
     pps_offset_chart->show();
 }

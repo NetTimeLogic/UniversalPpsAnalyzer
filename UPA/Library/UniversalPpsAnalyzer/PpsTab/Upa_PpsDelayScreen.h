@@ -29,6 +29,7 @@ private slots:
     void pps_done_button_clicked(void);
     void pps_change_delays_button_clicked(void);
     void pps_analyzer_changed(int index);
+    void pps_graph_changed(void);
 };
 
 #endif // UCM_PPSDELAYSCREEN_H

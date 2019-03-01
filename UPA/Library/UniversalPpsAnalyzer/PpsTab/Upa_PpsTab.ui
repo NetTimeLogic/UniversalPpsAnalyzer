@@ -146,6 +146,80 @@
     <string>Change Delays</string>
    </property>
   </widget>
+  <widget class="QCheckBox" name="PpsFixedScaleCheckBox">
+   <property name="geometry">
+    <rect>
+     <x>870</x>
+     <y>20</y>
+     <width>80</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Fixed Scale</string>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="PpsMinScaleLabel">
+   <property name="geometry">
+    <rect>
+     <x>579</x>
+     <y>20</y>
+     <width>50</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Min [ns]</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="PpsMinScaleValue">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>630</x>
+     <y>20</y>
+     <width>80</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>-100</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="PpsMaxScaleValue">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>771</x>
+     <y>20</y>
+     <width>80</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>100</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="PpsMaxScaleLabel">
+   <property name="geometry">
+    <rect>
+     <x>720</x>
+     <y>20</y>
+     <width>50</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Max [ns]</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
