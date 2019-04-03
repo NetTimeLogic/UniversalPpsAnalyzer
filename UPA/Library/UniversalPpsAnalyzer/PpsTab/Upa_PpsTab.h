@@ -72,6 +72,7 @@ public:
 public:
     Upa_UniversalPpsAnalyzer* upa;
     QList<QLineSeries*> pps_offset_series;
+    QList<int*> pps_offsets;
     QList<unsigned int*> pps_offset_number_of_points;
     QList<int*> pps_offset_delays;
     QList<int*> pps_offset_show;
@@ -82,13 +83,15 @@ private:
 
     // PPS tab
     QTimer* pps_timer;
-    unsigned int compensate_values;
-    QFile log_file;
-    unsigned int log_values;
+    unsigned int pps_compensate_values;
+    QFile pps_log_file;
+    unsigned int pps_log_values;
+    unsigned int pps_zoom_factor;
 
     QChart* pps_offset_chart;
     QChartView* pps_offset_chart_view;
-
+    QValueAxis* pps_offset_chart_x_axis;
+    QValueAxis* pps_offset_chart_y_axis;
 
     void pps_read_values(void);
 
@@ -100,6 +103,8 @@ private slots:
     void pps_compensate_values_button_clicked(void);
     void pps_read_values_timer(void);
     void pps_delay_button_clicked(void);
+    void pps_zoom_in_button_clicked(void);
+    void pps_zoom_out_button_clicked(void);
 };
 
 #endif // UPA_PPS_H

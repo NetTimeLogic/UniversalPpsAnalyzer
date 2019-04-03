@@ -42,18 +42,31 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     pps_timer = new QTimer(this);
     pps_timer->stop();
 
-    compensate_values = 1;
-    log_values = 0;
+    pps_compensate_values = 1;
+    pps_log_values = 0;
+
+    pps_zoom_factor = 1;
+    ui->PpsZoomInButton->setEnabled(false);
+    ui->PpsZoomOutButton->setEnabled(true); // now we can zoom out for sure
 
     connect(ui->PpsClearButton, SIGNAL(clicked()), this, SLOT(pps_clear_button_clicked()));
     connect(ui->PpsSaveButton, SIGNAL(clicked()), this, SLOT(pps_save_button_clicked()));
     connect(ui->PpsLogButton, SIGNAL(clicked()), this, SLOT(pps_log_button_clicked()));
     connect(ui->PpsCompensateValuesButton, SIGNAL(clicked()), this, SLOT(pps_compensate_values_button_clicked()));
     connect(ui->PpsChangeDelaysButton, SIGNAL(clicked()), this, SLOT(pps_delay_button_clicked()));
+    connect(ui->PpsZoomInButton, SIGNAL(clicked()), this, SLOT(pps_zoom_in_button_clicked()));
+    connect(ui->PpsZoomOutButton, SIGNAL(clicked()), this, SLOT(pps_zoom_out_button_clicked()));
     connect(pps_timer, SIGNAL(timeout()), this, SLOT(pps_read_values_timer()));
 
     for (int i = 0; i < upa->core_config.size(); i++)
     {
+        int* temp_offsets = new int[100000];
+        memset(temp_offsets, 0, sizeof(int[100000]));
+        pps_offsets.append(temp_offsets);
+    }
+
+    for (int i = 0; i < upa->core_config.size(); i++)
+    {        
         temp_string.clear();
         temp_string.append(upa->core_config.at(i).com_port);
         temp_string.append("_PPS_");
@@ -150,7 +163,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         pps_offset_chart->addSeries(pps_offset_series.at(i));
     }
 
-    QValueAxis* pps_offset_chart_x_axis = new QValueAxis;
+    pps_offset_chart_x_axis = new QValueAxis;
     pps_offset_chart_x_axis->setLabelFormat("%i");
     pps_offset_chart_x_axis->setTickCount(21);
     pps_offset_chart_x_axis->setMin(0);
@@ -161,7 +174,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         pps_offset_series.at(i)->attachAxis(pps_offset_chart_x_axis);
     }
 
-    QValueAxis* pps_offset_chart_y_axis = new QValueAxis;
+    pps_offset_chart_y_axis = new QValueAxis;
     pps_offset_chart_y_axis->setLabelFormat("%i");
     pps_offset_chart_y_axis->setTickCount(11);
     pps_offset_chart_y_axis->setMin(-100);
@@ -190,16 +203,16 @@ Upa_PpsTab::~Upa_PpsTab()
 
     pps_timer->stop();
 
-    if (log_values != 0)
+    if (pps_log_values != 0)
     {
-        log_values = 0;
-        log_file.close();
+        pps_log_values = 0;
+        pps_log_file.close();
         ui->PpsLogButton->setText("Start Log");
     }
 
 
     for (int i = 0; i < upa->core_config.size(); i++)
-    {
+    {        
         temp_string.clear();
         temp_string.append(upa->core_config.at(i).com_port);
         temp_string.append("_PPS_");
@@ -231,11 +244,13 @@ Upa_PpsTab::~Upa_PpsTab()
     delete pps_timer;
     for (int i = 0; i < upa->core_config.size(); i++)
     {
+        delete pps_offsets.at(i);
         delete pps_offset_show.at(i);
         delete pps_offset_delays.at(i);
         delete pps_offset_number_of_points.at(i);
         delete pps_offset_series.at(i);
     }
+    pps_offsets.clear();
     pps_offset_show.clear();
     pps_offset_delays.clear();
     pps_offset_number_of_points.clear();
@@ -268,6 +283,7 @@ int Upa_PpsTab::pps_enable(void)
     {
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
+        memset(pps_offsets.at(i), 0, sizeof(int[100000]));
     }
 
     pps_timer->start(1000);
@@ -278,10 +294,10 @@ int Upa_PpsTab::pps_disable(void)
 {
     pps_timer->stop();
 
-    if (log_values != 0)
+    if (pps_log_values != 0)
     {
-        log_values = 0;
-        log_file.close();
+        pps_log_values = 0;
+        pps_log_file.close();
         ui->PpsLogButton->setText("Start Log");
     }
 
@@ -289,6 +305,7 @@ int Upa_PpsTab::pps_disable(void)
     {
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
+        memset(pps_offsets.at(i), 0, sizeof(int[100000]));
     }
 
     return 0;
@@ -356,20 +373,27 @@ void Upa_PpsTab::pps_read_values(void)
                     *(upa->core_config.at(k).ref_offset) = temp_signed_offset + *(pps_offset_delays.at(k));
                     temp_signed_offset = temp_signed_offset - *(pps_offset_delays.at(k));
                 }
-                else if (compensate_values == 1)
+                else if (pps_compensate_values == 1)
                 {
                     temp_signed_offset = temp_signed_offset - *(upa->core_config.at(k).ref_offset);
                     temp_signed_offset = temp_signed_offset - *(pps_offset_delays.at(k));
                 }
 
-                pps_offset_series.at(k)->append(*pps_offset_number_of_points.at(k), temp_signed_offset);
-                if (*pps_offset_number_of_points.at(k) < 102)
+                if (*pps_offset_number_of_points.at(k) < 100000)
                 {
+                    pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = (int)temp_signed_offset;
                     *pps_offset_number_of_points.at(k) = *pps_offset_number_of_points.at(k) + 1;
+                }
+                else
+                {
+                    for (int i = 1; i < (100000-1); i++)
+                    {
+                       pps_offsets.at(k)[i-1] = pps_offsets.at(k)[i];
+                    }
+                    pps_offsets.at(k)[(100000-1)] = (int)temp_signed_offset;
                 }
             }
         }
-
     }
 
     // find max number
@@ -385,17 +409,17 @@ void Upa_PpsTab::pps_read_values(void)
     // fill with old
     for (int k = 0; k < upa->core_config.size(); k++)
     {
-        while (((unsigned int)pps_offset_series.at(k)->count()) < temp_number_of_points)
+        while (*pps_offset_number_of_points.at(k) < temp_number_of_points)
         {
             if (*pps_offset_number_of_points.at(k) > 0)
             {
-                pps_offset_series.at(k)->append(*pps_offset_number_of_points.at(k), pps_offset_series.at(k)->at(pps_offset_series.at(k)->count()-1).y());
+                pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-1)];
             }
             else
             {
-                pps_offset_series.at(k)->append(*pps_offset_number_of_points.at(k), 0);
+                pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = 0;
             }
-            if (*pps_offset_number_of_points.at(k) < 102)
+            if (*pps_offset_number_of_points.at(k) < 100000)
             {
                 *pps_offset_number_of_points.at(k) = *pps_offset_number_of_points.at(k) + 1;
             }
@@ -403,32 +427,23 @@ void Upa_PpsTab::pps_read_values(void)
     }
 
     // log
-    if (log_values != 0)
+    if (pps_log_values != 0)
     {
         QDateTime temp_time = QDateTime::currentDateTime();
         QString temp_timestamp = temp_time.toString("dd-MM-yyyy hh:mm:ss.zzz");
-        QTextStream temp_stream(&log_file);
-        int temp_count = 0;
-        for (int k = 0; k < upa->core_config.size(); k++)
-        {
-            if (pps_offset_series.at(k)->count() > temp_count)
-            {
-                temp_count = pps_offset_series.at(k)->count();
-            }
-        }
+        QTextStream temp_stream(&pps_log_file);
 
-        if (temp_count > 0)
+        if (temp_number_of_points > 0)
         {
             temp_stream << temp_timestamp;
 
             for (int k = 0; k < upa->core_config.size(); k++)
             {
                 int temp_index;
-                temp_index = pps_offset_series.at(k)->count() - 1;
-                if (temp_index > 0)
+                temp_index = *pps_offset_number_of_points.at(k) - 1;
+                if (temp_index >= 0)
                 {
-                    QPointF temp_point = pps_offset_series.at(k)->at(temp_index);
-                    temp_stream << ";" << QString::number(temp_point.y());
+                    temp_stream << ";" << QString::number(pps_offsets.at(k)[temp_index]);
                 }
                 else
                 {
@@ -439,17 +454,43 @@ void Upa_PpsTab::pps_read_values(void)
         }
     }
 
+    // disable updates
+    pps_offset_chart_view->setUpdatesEnabled(false);
+
+    // fill values
+    unsigned int temp_range = (100*pps_zoom_factor)+1;
     for (int k = 0; k < upa->core_config.size(); k++)
     {
-        if (*pps_offset_number_of_points.at(k) >= 102)
+        pps_offset_chart->removeSeries(pps_offset_series.at(k));
+        pps_offset_series.at(k)->clear();
+
+        if (temp_range > *pps_offset_number_of_points.at(k))
         {
-            for (int j = 1; j < pps_offset_series.at(k)->count(); j++)
+            for (int i = 0; i < *pps_offset_number_of_points.at(k); i++)
             {
-                QPointF temp_point = pps_offset_series.at(k)->at(j);
-                pps_offset_series.at(k)->replace(j, (j-1), temp_point.y());
+                pps_offset_series.at(k)->append(i, pps_offsets.at(k)[i]);
             }
-            pps_offset_series.at(k)->remove(0);
         }
+        else
+        {
+            for (int i = 0; i < temp_range; i++)
+            {
+                pps_offset_series.at(k)->append(i, pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-temp_range+i)]);
+            }
+        }
+        pps_offset_chart->addSeries(pps_offset_series.at(k));
+    }
+
+    // axis
+    pps_offset_chart->removeAxis(pps_offset_chart_x_axis);
+    pps_offset_chart_x_axis->setLabelFormat("%i");
+    pps_offset_chart_x_axis->setTickCount(21);
+    pps_offset_chart_x_axis->setMin(0);
+    pps_offset_chart_x_axis->setMax((100*pps_zoom_factor));
+    pps_offset_chart->addAxis(pps_offset_chart_x_axis, Qt::AlignBottom);
+    for (int i = 0; i < upa->core_config.size(); i++)
+    {
+        pps_offset_series.at(i)->attachAxis(pps_offset_chart_x_axis);
     }
 
     if (ui->PpsFixedScaleCheckBox->isChecked() == false)
@@ -474,10 +515,8 @@ void Upa_PpsTab::pps_read_values(void)
                 }
             }
         }
-        temp_max = (temp_max * 5) / 4;
-        temp_max = temp_max + (100 - temp_max%100);
-        temp_min = (temp_min * 5) / 4;
-        temp_min = temp_min - (100 - abs(temp_min)%100);
+        temp_max = ((temp_max/100)+1)*100;
+        temp_min = ((temp_min/100)-1)*100;
         if (temp_max > 100000)
         {
             temp_max = 100000;
@@ -502,8 +541,16 @@ void Upa_PpsTab::pps_read_values(void)
             ui->PpsMinScaleValue->setText(QString::number(temp_min));
         }
     }
-    pps_offset_chart->axisY()->setMin(temp_min);
-    pps_offset_chart->axisY()->setMax(temp_max);
+    pps_offset_chart->removeAxis(pps_offset_chart_y_axis);
+    pps_offset_chart_y_axis->setLabelFormat("%i");
+    pps_offset_chart_y_axis->setTickCount(11);
+    pps_offset_chart_y_axis->setMin(temp_min);
+    pps_offset_chart_y_axis->setMax(temp_max);
+    pps_offset_chart->addAxis(pps_offset_chart_y_axis, Qt::AlignLeft);
+    for (int i = 0; i < upa->core_config.size(); i++)
+    {
+        pps_offset_series.at(i)->attachAxis(pps_offset_chart_y_axis);
+    }
 
     for (int k = 0; k < upa->core_config.size(); k++)
     {
@@ -517,6 +564,9 @@ void Upa_PpsTab::pps_read_values(void)
         }
     }
 
+    // enable updates
+    pps_offset_chart_view->setUpdatesEnabled(true);
+
     pps_offset_chart->show();
 }
 
@@ -526,6 +576,7 @@ void Upa_PpsTab::pps_clear_button_clicked(void)
     {
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
+        memset(pps_offsets.at(i), 0, sizeof(int[100000]));
     }
     pps_offset_chart->axisY()->setMin(-100);
     pps_offset_chart->axisY()->setMax(100);
@@ -558,10 +609,10 @@ void Upa_PpsTab::pps_log_button_clicked(void)
 
         if (temp_filename != "")
         {
-            log_file.setFileName(temp_filename);
-            if (true == log_file.open(QIODevice::WriteOnly | QIODevice::Text))
+            pps_log_file.setFileName(temp_filename);
+            if (true == pps_log_file.open(QIODevice::WriteOnly | QIODevice::Text))
             {
-                QTextStream temp_stream(&log_file);
+                QTextStream temp_stream(&pps_log_file);
 
                 temp_stream << "sep=;\n";
                 temp_stream << "Timestamp";
@@ -571,19 +622,19 @@ void Upa_PpsTab::pps_log_button_clicked(void)
                 }
                 temp_stream << "\n";
 
-                log_values = 1;
+                pps_log_values = 1;
                 ui->PpsLogButton->setText("Stop Log");
             }
             else
             {
-                log_values = 0;
-                log_file.setFileName("");
+                pps_log_values = 0;
+                pps_log_file.setFileName("");
                 cout << "ERROR: " << "could not open log file" << endl;
             }
         }
         else
         {
-            log_values = 0;
+            pps_log_values = 0;
             cout << "ERROR: " << "empty log file name" << endl;
         }
     }
@@ -598,8 +649,8 @@ void Upa_PpsTab::pps_log_button_clicked(void)
         switch (ret)
         {
             case QMessageBox::Ok:
-                log_values = 0;
-                log_file.close();
+                pps_log_values = 0;
+                pps_log_file.close();
                 ui->PpsLogButton->setText("Start Log");
                 break;
 
@@ -613,12 +664,12 @@ void Upa_PpsTab::pps_compensate_values_button_clicked(void)
 {
     if (ui->PpsCompensateValuesButton->text() == "Raw Values")
     {
-        compensate_values = 0;
+        pps_compensate_values = 0;
         ui->PpsCompensateValuesButton->setText("Compensate Values");
     }
     else
     {
-        compensate_values = 1;
+        pps_compensate_values = 1;
         ui->PpsCompensateValuesButton->setText("Raw Values");
     }
 }
@@ -634,4 +685,134 @@ void Upa_PpsTab::pps_delay_button_clicked(void)
 void Upa_PpsTab::pps_read_values_timer(void)
 {
     pps_read_values();
+}
+
+void Upa_PpsTab::pps_zoom_in_button_clicked(void)
+{
+    switch (pps_zoom_factor)
+    {
+    case 1000:
+        pps_zoom_factor = 100;
+        break;
+
+    case 100:
+        pps_zoom_factor = 80;
+        break;
+
+    case 80:
+        pps_zoom_factor = 60;
+        break;
+
+    case 60:
+        pps_zoom_factor = 40;
+        break;
+
+    case 40:
+        pps_zoom_factor = 20;
+        break;
+
+    case 20:
+        pps_zoom_factor = 10;
+        break;
+
+    case 10:
+        pps_zoom_factor = 8;
+        break;
+
+    case 8:
+        pps_zoom_factor = 6;
+        break;
+
+    case 6:
+        pps_zoom_factor = 4;
+        break;
+
+    case 4:
+        pps_zoom_factor = 2;
+        break;
+
+    case 2:
+        pps_zoom_factor = 1;
+        ui->PpsZoomInButton->setEnabled(false);
+        break;
+
+    case 1:
+        pps_zoom_factor = 1;
+        ui->PpsZoomInButton->setEnabled(false);
+        break;
+
+    default:
+        pps_zoom_factor = 1;
+        ui->PpsZoomInButton->setEnabled(false);
+        break;
+    }
+
+    ui->PpsZoomOutButton->setEnabled(true); // now we can zoom out for sure
+
+    pps_read_values(); // realigne
+}
+
+void Upa_PpsTab::pps_zoom_out_button_clicked(void)
+{
+    switch (pps_zoom_factor)
+    {
+    case 1000:
+        pps_zoom_factor = 1000;
+        ui->PpsZoomOutButton->setEnabled(false);
+        break;
+
+    case 100:
+        pps_zoom_factor = 1000;
+        ui->PpsZoomOutButton->setEnabled(false);
+        break;
+
+    case 80:
+        pps_zoom_factor = 100;
+        break;
+
+    case 60:
+        pps_zoom_factor = 80;
+        break;
+
+    case 40:
+        pps_zoom_factor = 60;
+        break;
+
+    case 20:
+        pps_zoom_factor = 40;
+        break;
+
+    case 10:
+        pps_zoom_factor = 20;
+        break;
+
+    case 8:
+        pps_zoom_factor = 10;
+        break;
+
+    case 6:
+        pps_zoom_factor = 8;
+        break;
+
+    case 4:
+        pps_zoom_factor = 6;
+        break;
+
+    case 2:
+        pps_zoom_factor = 4;
+        break;
+
+    case 1:
+        pps_zoom_factor = 2;
+        break;
+
+    default:
+        pps_zoom_factor = 100;
+        ui->PpsZoomOutButton->setEnabled(false);
+        break;
+    }
+
+    ui->PpsZoomInButton->setEnabled(true); // now we can zoom in for sure
+
+    pps_read_values(); // realigne
 }
