@@ -386,7 +386,7 @@ void Upa_PpsTab::pps_read_values(void)
                 }
                 else
                 {
-                    for (int i = 1; i < (100000-1); i++)
+                    for (int i = 1; i <= (100000-1); i++)
                     {
                        pps_offsets.at(k)[i-1] = pps_offsets.at(k)[i];
                     }
@@ -464,18 +464,21 @@ void Upa_PpsTab::pps_read_values(void)
         pps_offset_chart->removeSeries(pps_offset_series.at(k));
         pps_offset_series.at(k)->clear();
 
-        if (temp_range > *pps_offset_number_of_points.at(k))
+        if (*(pps_offset_show.at(k)) != 0) // only for those who are shown we care for the filling
         {
-            for (int i = 0; i < *pps_offset_number_of_points.at(k); i++)
+            if (temp_range > *pps_offset_number_of_points.at(k))
             {
-                pps_offset_series.at(k)->append(i, pps_offsets.at(k)[i]);
+                for (int i = 0; i < *pps_offset_number_of_points.at(k); i++)
+                {
+                    pps_offset_series.at(k)->append(i, pps_offsets.at(k)[i]);
+                }
             }
-        }
-        else
-        {
-            for (int i = 0; i < temp_range; i++)
+            else
             {
-                pps_offset_series.at(k)->append(i, pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-temp_range+i)]);
+                for (int i = 0; i < temp_range; i++)
+                {
+                    pps_offset_series.at(k)->append(i, pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-temp_range+i)]);
+                }
             }
         }
         pps_offset_chart->addSeries(pps_offset_series.at(k));
