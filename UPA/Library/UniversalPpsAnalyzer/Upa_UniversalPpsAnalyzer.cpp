@@ -41,6 +41,9 @@ Upa_UniversalPpsAnalyzer::Upa_UniversalPpsAnalyzer(QMainWindow *parent) : QMainW
     // File menu
     connect(Upa_Exit, SIGNAL(triggered()), this, SLOT(upa_file_exit_clicked()));
 
+    // Help menu
+    connect(Upa_About, SIGNAL(triggered()), this, SLOT(upa_help_about_clicked()));
+
     // Config Tab
     config_tab = new Upa_ConfigTab(this);
     Upa_MainTab->addTab(config_tab, "Config"); // show this at startup
@@ -67,7 +70,9 @@ Upa_UniversalPpsAnalyzer::~Upa_UniversalPpsAnalyzer()
 {
     delete config_tab;
     delete advanced_tab;
-    core_config.clear();
+    ts_core_config.clear();
+    io_core_config.clear();
+    i2c_core_config.clear();
 }
 
 int Upa_UniversalPpsAnalyzer::upa_resize(int height, int width)
@@ -118,7 +123,9 @@ void Upa_UniversalPpsAnalyzer::resizeEvent(QResizeEvent* event)
 /******************************************************************/
 void Upa_UniversalPpsAnalyzer::closeEvent(QCloseEvent *event)
 {
-    core_config.clear();
+    ts_core_config.clear();
+    io_core_config.clear();
+    i2c_core_config.clear();
     com_lib.clear();
     exit(0);
 }
@@ -128,8 +135,18 @@ void Upa_UniversalPpsAnalyzer::closeEvent(QCloseEvent *event)
 /******************************************************************/
 void Upa_UniversalPpsAnalyzer::upa_file_exit_clicked(void)
 {
-    core_config.clear();
+    ts_core_config.clear();
+    io_core_config.clear();
+    i2c_core_config.clear();
     com_lib.clear();
     exit(0);
+}
+
+/******************************************************************/
+// Help menu
+/******************************************************************/
+void Upa_UniversalPpsAnalyzer::upa_help_about_clicked(void)
+{
+    about_screen.show();
 }
 

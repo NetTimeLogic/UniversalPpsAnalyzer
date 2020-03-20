@@ -28,7 +28,9 @@
 using namespace std;
 
 #define Upa_CoreConfig_ConfSlaveCoreType                1
-#define Ucm_CoreConfig_ClkSignalTimestamperCoreType     4
+#define Upa_CoreConfig_ClkSignalTimestamperCoreType     4
+#define Upa_CoreConfig_I2cConfigurationCoreType         10001
+#define Upa_CoreConfig_IoConfigurationCoreType          10002
 
 class Upa_CommunicationLib;
 

@@ -28,11 +28,14 @@
 #include <QTextStream>
 #include <QMessageBox>
 #include <Upa_UniversalPpsAnalyzer.h>
+#include <Upa_CalibrateTab.h>
 
 class Upa_UniversalPpsAnalyzer;
+class Upa_CalibrateTab;
 
 namespace Ui {
 class Upa_AdvancedTab;
+class Upa_CalibrateTab;
 }
 
 class Upa_AdvancedTab : public QWidget
@@ -46,6 +49,8 @@ public:
     int advanced_resize(int height, int width);
     int advanced_disable(void);
     int advanced_enable(void);
+    int advanced_disable_calibration(void);
+    int advanced_enable_calibration(void);
 
 
 private:
@@ -55,10 +60,14 @@ private:
     // Advanced tab
     Upa_DebugStream* debug_stream;
 
+    // Config tab
+    Upa_CalibrateTab* calibrate_tab;
+
 private slots:
     void advanced_clear_log_button_clicked(void);
     void advanced_save_log_button_clicked(void);
     void advanced_save_log_file_browse_button_clicked(void);
+    void advanced_calibrate_button_clicked(void);
 };
 
 #endif // UPA_ADVANCEDTAB_H

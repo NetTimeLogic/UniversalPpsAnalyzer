@@ -27,35 +27,47 @@ DEFINES += QT_DEPRECATED_WARNINGS
 INCLUDEPATH += CommunicationLib \
     CoreConfig \
     PpsTab \
+    CalibrateTab \
     AdvancedTab \
     ConfigTab \
-    DebugStream
+    DebugStream \
+    HelpMenu
 
 SOURCES += main.cpp\
     Upa_UniversalPpsAnalyzer.cpp \
     CommunicationLib/Upa_CommunicationLib.cpp \
     CoreConfig/Upa_CoreConfig.cpp \
-    PpsTab/Upa_PpsDelayScreen.cpp \
+    PpsTab/Upa_PpsConfigScreen.cpp \
+    PpsTab/Upa_PpsThresholdScreen.cpp \
     PpsTab/Upa_PpsTab.cpp \
+    CalibrateTab/Upa_CalibrateTab.cpp \
     AdvancedTab/Upa_AdvancedTab.cpp \
-    ConfigTab/Upa_ConfigTab.cpp
+    ConfigTab/Upa_ConfigTab.cpp \
+    HelpMenu/Upa_HelpMenuAbout.cpp
 
 HEADERS  += Upa_UniversalPpsAnalyzer.h \
     CommunicationLib/Upa_CommunicationLib.h \
     CoreConfig/Upa_CoreConfig.h \
-    PpsTab/Upa_PpsDelayScreen.h \
+    PpsTab/Upa_PpsConfigScreen.h \
+    PpsTab/Upa_PpsThresholdScreen.h \
     PpsTab/Upa_PpsTab.h \
+    CalibrateTab/Upa_CalibrateTab.h \
     AdvancedTab/Upa_AdvancedTab.h \
     ConfigTab/Upa_ConfigTab.h \
-    DebugStream/Upa_DebugStream.h
+    DebugStream/Upa_DebugStream.h \
+    HelpMenu/Upa_HelpMenuAbout.h
 
 FORMS    += Upa_UniversalPpsAnalyzer.ui \
-    PpsTab/Upa_PpsDelayScreen.ui \
+    PpsTab/Upa_PpsConfigScreen.ui \
+    PpsTab/Upa_PpsThresholdScreen.ui \
     PpsTab/Upa_PpsTab.ui \
+    CalibrateTab/Upa_CalibrateTab.ui \
     AdvancedTab/Upa_AdvancedTab.ui \
-    ConfigTab/Upa_ConfigTab.ui
+    ConfigTab/Upa_ConfigTab.ui \
+    HelpMenu/Upa_HelpMenuAbout.ui
 
 RC_FILE = Upa_UniversalPpsAnalyzer.rc
+RESOURCES = Upa_UniversalPpsAnalyzer.qrc
 
 DISTFILES += \
     Upa_UniversalPpsAnalyzer.ico \

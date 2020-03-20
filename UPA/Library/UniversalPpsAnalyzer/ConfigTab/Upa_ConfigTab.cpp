@@ -154,10 +154,19 @@ void Upa_ConfigTab::config_connect_button_clicked(void)
                     temp_config.com_lib = temp_com_lib;
                     temp_config.ref_offset = temp_ref_offset;
 
-                    if (temp_config.core_type == Ucm_CoreConfig_ClkSignalTimestamperCoreType)
+                    if (temp_config.core_type == Upa_CoreConfig_ClkSignalTimestamperCoreType)
                     {
                         core_count++;
-                        upa->core_config.append(temp_config);
+                        upa->ts_core_config.append(temp_config);
+                    }
+                    else if (temp_config.core_type == Upa_CoreConfig_IoConfigurationCoreType)
+                    {
+                        upa->io_core_config.append(temp_config);
+                    }
+                    else if (temp_config.core_type == Upa_CoreConfig_I2cConfigurationCoreType)
+                    {
+                        // Advanced Tab
+                        upa->i2c_core_config.append(temp_config);
                     }
                 }
 
@@ -181,7 +190,7 @@ void Upa_ConfigTab::config_connect_button_clicked(void)
         //********************************
         // config
         //********************************
-        if (false == upa->core_config.isEmpty())
+        if (false == upa->ts_core_config.isEmpty())
         {
             ui->ConfigAddressMapValue->clear();
         }
@@ -191,27 +200,36 @@ void Upa_ConfigTab::config_connect_button_clicked(void)
             temp_string.append("NA");
             QMessageBox::information(this, tr("Connect"), tr("No device found"));
             ui->ConfigConnectButton->setEnabled(true);
+            // Advanced Tab
+            upa->advanced_tab->advanced_disable();
             return;
         }
 
-        for (int i = 0; i < upa->core_config.size(); i++)
+        if (false == upa->i2c_core_config.isEmpty())
+        {
+            upa->advanced_tab->advanced_enable_calibration();
+        }
+        else
+        {
+            upa->advanced_tab->advanced_disable_calibration();
+        }
+
+        for (int i = 0; i < upa->ts_core_config.size(); i++)
         {
             temp_string.append("0x");
-            temp_string.append(QString("%1").arg(upa->core_config.at(i).address_range_low, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(QString("%1").arg(upa->ts_core_config.at(i).address_range_low, 8, 16, QLatin1Char('0')).toUpper());
             temp_string.append(" - ");
             temp_string.append("0x");
-            temp_string.append(QString("%1").arg(upa->core_config.at(i).address_range_high, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(QString("%1").arg(upa->ts_core_config.at(i).address_range_high, 8, 16, QLatin1Char('0')).toUpper());
             temp_string.append(", ");
             temp_string.append("InstNr: ");
-            temp_string.append(QString("%1").arg(upa->core_config.at(i).core_instance_nr, 4, 10, QLatin1Char('0')).toUpper());
+            temp_string.append(QString("%1").arg(upa->ts_core_config.at(i).core_instance_nr, 4, 10, QLatin1Char('0')).toUpper());
             temp_string.append(", ");
             temp_string.append("Type: ");
 
-            switch (upa->core_config.at(i).core_type)
+            switch (upa->ts_core_config.at(i).core_type)
             {
-            case Upa_CoreConfig_ConfSlaveCoreType:
-                break;
-            case Ucm_CoreConfig_ClkSignalTimestamperCoreType:
+            case Upa_CoreConfig_ClkSignalTimestamperCoreType:
                 temp_string.append("CLK SignalTimestamper");
                 break;
              default:
@@ -219,7 +237,61 @@ void Upa_ConfigTab::config_connect_button_clicked(void)
             }
             temp_string.append(", ");
             temp_string.append("Com Port: ");
-            temp_string.append(upa->core_config.at(i).com_port);
+            temp_string.append(upa->ts_core_config.at(i).com_port);
+            temp_string.append("\n");
+        }
+
+        for (int i = 0; i < upa->io_core_config.size(); i++)
+        {
+            temp_string.append("0x");
+            temp_string.append(QString("%1").arg(upa->io_core_config.at(i).address_range_low, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(" - ");
+            temp_string.append("0x");
+            temp_string.append(QString("%1").arg(upa->io_core_config.at(i).address_range_high, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(", ");
+            temp_string.append("InstNr: ");
+            temp_string.append(QString("%1").arg(upa->io_core_config.at(i).core_instance_nr, 4, 10, QLatin1Char('0')).toUpper());
+            temp_string.append(", ");
+            temp_string.append("Type: ");
+
+            switch (upa->io_core_config.at(i).core_type)
+            {
+            case Upa_CoreConfig_IoConfigurationCoreType:
+                temp_string.append("IO Configuration");
+                break;
+             default:
+                break;
+            }
+            temp_string.append(", ");
+            temp_string.append("Com Port: ");
+            temp_string.append(upa->io_core_config.at(i).com_port);
+            temp_string.append("\n");
+        }
+
+        for (int i = 0; i < upa->i2c_core_config.size(); i++)
+        {
+            temp_string.append("0x");
+            temp_string.append(QString("%1").arg(upa->i2c_core_config.at(i).address_range_low, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(" - ");
+            temp_string.append("0x");
+            temp_string.append(QString("%1").arg(upa->i2c_core_config.at(i).address_range_high, 8, 16, QLatin1Char('0')).toUpper());
+            temp_string.append(", ");
+            temp_string.append("InstNr: ");
+            temp_string.append(QString("%1").arg(upa->i2c_core_config.at(i).core_instance_nr, 4, 10, QLatin1Char('0')).toUpper());
+            temp_string.append(", ");
+            temp_string.append("Type: ");
+
+            switch (upa->i2c_core_config.at(i).core_type)
+            {
+            case Upa_CoreConfig_I2cConfigurationCoreType:
+                temp_string.append("I2C Configuration");
+                break;
+             default:
+                break;
+            }
+            temp_string.append(", ");
+            temp_string.append("Com Port: ");
+            temp_string.append(upa->i2c_core_config.at(i).com_port);
             temp_string.append("\n");
         }
 
@@ -252,21 +324,27 @@ void Upa_ConfigTab::config_connect_button_clicked(void)
         }
 
         //PPS Tab
-        upa->pps_tab->pps_disable();
-        delete(upa->pps_tab);
-        upa->pps_tab = NULL;
-        upa->core_config.clear();
-
-        //Delete Ref offset for this board
-        for (int i = 0; i < upa->core_config.size(); i++)
+        if (upa->pps_tab != NULL)
         {
-            if (upa->core_config.at(i).core_instance_nr == 1)
-            {
-                delete(upa->core_config.at(i).ref_offset);
-            }
+            upa->pps_tab->pps_disable();
+            delete(upa->pps_tab);
+            upa->pps_tab = NULL;
         }
 
+        //Delete Ref offset for this board
+        for (int i = 0; i < upa->ts_core_config.size(); i++)
+        {
+            if (upa->ts_core_config.at(i).core_instance_nr == 1)
+            {
+                delete(upa->ts_core_config.at(i).ref_offset);
+            }
+        }
+        upa->ts_core_config.clear();
+        upa->io_core_config.clear();
+        upa->i2c_core_config.clear();
+
         // Advanced Tab
+        upa->advanced_tab->advanced_disable_calibration();
         upa->advanced_tab->advanced_disable();
         for (int i = 0; i < upa->com_lib.size(); i++)
         {

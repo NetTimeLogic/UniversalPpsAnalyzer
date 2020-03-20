@@ -116,6 +116,22 @@
     <string>Save Log</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="AdvancedCalibrateButton">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>20</y>
+     <width>151</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Calibrate</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

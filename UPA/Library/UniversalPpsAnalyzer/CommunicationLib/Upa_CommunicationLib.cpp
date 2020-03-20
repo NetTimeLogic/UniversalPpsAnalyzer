@@ -607,19 +607,19 @@ int Upa_CommunicationLib::read_reg(const unsigned int addr, unsigned int& data)
 
     if (data_length == -1)
     {
-        cout << "ERROR: " << "write failed" << endl;
+        cout << "ERROR: " << "read failed" << endl;
         com_lock->unlock();
         return -1;
     }
     else if (data_length != write_data.size())
     {
-        cout << "ERROR: " << "write failed to send all data" << endl;
+        cout << "ERROR: " << "read failed to send all data" << endl;
         com_lock->unlock();
         return -1;
     }
     else if (false == com_port.waitForBytesWritten(500))
     {
-        cout << "ERROR: " << "write timed out" << endl;
+        cout << "ERROR: " << "read timed out" << endl;
         com_lock->unlock();
         return -1;
     }

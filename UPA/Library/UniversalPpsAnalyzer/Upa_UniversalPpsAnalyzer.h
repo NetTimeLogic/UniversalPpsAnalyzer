@@ -32,19 +32,23 @@
 #include <QtCore/QDateTime>
 #include <QtCharts/QValueAxis>
 #include <ui_Upa_UniversalPpsAnalyzer.h>
-#include <CommunicationLib/Upa_CommunicationLib.h>
-#include <CoreConfig/Upa_CoreConfig.h>
-#include <DebugStream/Upa_DebugStream.h>
+#include <Upa_CommunicationLib.h>
+#include <Upa_CoreConfig.h>
+#include <Upa_DebugStream.h>
 
-#include <ConfigTab/Upa_ConfigTab.h>
-#include <AdvancedTab/Upa_AdvancedTab.h>
-#include <PpsTab/Upa_PpsTab.h>
+#include <Upa_ConfigTab.h>
+#include <Upa_AdvancedTab.h>
+#include <Upa_PpsTab.h>
+#include <Upa_HelpMenuAbout.h>
 
 using namespace QtCharts;
 
 class Upa_ConfigTab;
 class Upa_AdvancedTab;
 class Upa_PpsTab;
+class Upa_HelpMenuAbout;
+
+#define Upa_Version_Nr               "2.1.00"
 
 #define Upa_MainHeight               820
 #define Upa_MainWidth                1380
@@ -60,7 +64,9 @@ class Upa_UniversalPpsAnalyzer : public QMainWindow, public Ui::Upa_UniversalPps
         int upa_resize(int height, int width);
 
         QList<Upa_CommunicationLib*> com_lib;
-        QList<Upa_CoreConfig> core_config;
+        QList<Upa_CoreConfig> ts_core_config;
+        QList<Upa_CoreConfig> io_core_config;
+        QList<Upa_CoreConfig> i2c_core_config;
 
         // Config tab
         Upa_ConfigTab* config_tab;
@@ -75,10 +81,13 @@ private:
         void resizeEvent(QResizeEvent* event);
         void closeEvent(QCloseEvent *event);
 
+        Upa_HelpMenuAbout about_screen;
+
 private slots:
         // File menu
         void upa_file_exit_clicked(void);
-
+        // Help menu
+        void upa_help_about_clicked(void);
 };
 
 #endif // UPA_UNIVERSALCONFIGURATIONMANAGER_H

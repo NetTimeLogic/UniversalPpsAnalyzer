@@ -35,6 +35,7 @@ Upa_AdvancedTab::Upa_AdvancedTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     connect(ui->AdvancedClearLogButton, SIGNAL(clicked()), this, SLOT(advanced_clear_log_button_clicked()));
     connect(ui->AdvancedSaveLogButton, SIGNAL(clicked()), this, SLOT(advanced_save_log_button_clicked()));
     connect(ui->AdvancedSaveLogFileBrowseButton, SIGNAL(clicked()), this, SLOT(advanced_save_log_file_browse_button_clicked()));
+    connect(ui->AdvancedCalibrateButton, SIGNAL(clicked()), this, SLOT(advanced_calibrate_button_clicked()));
 
 }
 
@@ -66,6 +67,20 @@ int Upa_AdvancedTab::advanced_enable(void)
 
 int Upa_AdvancedTab::advanced_disable(void)
 {
+    advanced_disable_calibration();
+    return 0;
+}
+
+int Upa_AdvancedTab::advanced_enable_calibration(void)
+{
+    ui->AdvancedCalibrateButton->setEnabled(true);
+    return 0;
+}
+
+int Upa_AdvancedTab::advanced_disable_calibration(void)
+{
+    ui->AdvancedCalibrateButton->setText("Calibrate");
+    ui->AdvancedCalibrateButton->setEnabled(false);
     return 0;
 }
 
@@ -123,5 +138,42 @@ void Upa_AdvancedTab::advanced_save_log_file_browse_button_clicked(void)
     {
         ui->AdvancedSaveLogFileValue->setText(temp_file);
     }
+}
+
+void Upa_AdvancedTab::advanced_calibrate_button_clicked(void)
+{
+    if (ui->AdvancedCalibrateButton->text() == "Calibrate")
+    {
+        // PPS Tab
+        calibrate_tab = new Upa_CalibrateTab(upa);
+        upa->Upa_MainTab->addTab(calibrate_tab, "Calibrate");
+        QSize new_size = upa->Upa_MainWindow->size();
+        calibrate_tab->calibrate_resize((new_size.height()+21), new_size.width());
+        calibrate_tab->calibrate_enable();
+
+        //PPS Tab
+        upa->pps_tab->pps_disable();
+        delete(upa->pps_tab);
+        upa->pps_tab = NULL;
+
+        ui->AdvancedCalibrateButton->setText("Stop Calibration");
+    }
+    else
+    {
+        //PPS Tab
+        calibrate_tab->calibrate_disable();
+        delete(calibrate_tab);
+        calibrate_tab = NULL;
+
+        // PPS Tab
+        upa->pps_tab = new Upa_PpsTab(upa);
+        upa->Upa_MainTab->addTab(upa->pps_tab, "Pps");
+        QSize new_size = upa->Upa_MainWindow->size();
+        upa->pps_tab->pps_resize((new_size.height()+21), new_size.width());
+        upa->pps_tab->pps_enable();
+
+        ui->AdvancedCalibrateButton->setText("Calibrate");
+    }
+
 }
 

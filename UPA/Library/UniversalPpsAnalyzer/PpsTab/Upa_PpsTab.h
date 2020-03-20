@@ -26,15 +26,19 @@
 #include <QWidget>
 #include <QTimer>
 #include <QFile>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QFuture>
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
 #include <QtCore/QDateTime>
 #include <QtCharts/QValueAxis>
 #include <Upa_UniversalPpsAnalyzer.h>
-#include <Upa_PpsDelayScreen.h>
+#include <Upa_PpsConfigScreen.h>
+#include <Upa_PpsThresholdScreen.h>
 
 class Upa_UniversalPpsAnalyzer;
-class Upa_PpsDelayScreen;
+class Upa_PpsConfigScreen;
+class Upa_PpsThresholdScreen;
 
 #define Upa_ClkTs_ControlReg                            0x00000000
 #define Upa_ClkTs_StatusReg                             0x00000004
@@ -50,9 +54,15 @@ class Upa_PpsDelayScreen;
 #define Upa_ClkTs_DataWidthReg                          0x0000004C
 #define Upa_ClkTs_DataReg                               0x00000050
 
+#define Upa_IoConf_OutputDataReg                        0x00000000
+#define Upa_IoConf_OutputEnableReg                      0x00000004
+#define Upa_IoConf_InputDataReg                         0x00000008
+
+
 namespace Ui {
 class Upa_PpsTab;
-class Upa_PpsDelayScreen;
+class Upa_PpsConfigScreen;
+class Upa_PpsThresholdScreen;
 }
 
 using namespace QtCharts;
@@ -74,16 +84,24 @@ public:
     QList<QLineSeries*> pps_offset_series;
     QList<int*> pps_offsets;
     QList<unsigned int*> pps_offset_number_of_points;
+    QList<QString*> pps_offset_names;
     QList<int*> pps_offset_delays;
     QList<int*> pps_offset_show;
+    QList<int*> pps_offset_thresholds_high;
+    QList<int*> pps_offset_thresholds_low;
+    QList<int*> pps_offset_thresholds;
+    QList<int*> pps_offset_thresholds_high_exceeded;
+    QList<int*> pps_offset_thresholds_low_exceeded;
+    unsigned int pps_compensate_values;
+
 
 private:
     Ui::Upa_PpsTab *ui;
-    Upa_PpsDelayScreen* ui_delay;
+    Upa_PpsConfigScreen* ui_config;
+    Upa_PpsThresholdScreen* ui_threshold;
 
     // PPS tab
     QTimer* pps_timer;
-    unsigned int pps_compensate_values;
     QFile pps_log_file;
     unsigned int pps_log_values;
     unsigned int pps_zoom_factor;
@@ -93,6 +111,7 @@ private:
     QValueAxis* pps_offset_chart_x_axis;
     QValueAxis* pps_offset_chart_y_axis;
 
+    void pps_read_ts(QString com_port);
     void pps_read_values(void);
 
 private slots:
@@ -103,6 +122,7 @@ private slots:
     void pps_compensate_values_button_clicked(void);
     void pps_read_values_timer(void);
     void pps_delay_button_clicked(void);
+    void pps_threshold_button_clicked(void);
     void pps_zoom_in_button_clicked(void);
     void pps_zoom_out_button_clicked(void);
 };
