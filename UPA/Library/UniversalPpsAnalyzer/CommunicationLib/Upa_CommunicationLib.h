@@ -25,15 +25,23 @@
 
 #include <QSerialPortInfo>
 #include <QSerialPort>
+#include <QNetworkInterface>
+#include <QUdpSocket>
 #include <QMutex>
 
 #include <string>
 using namespace std;
 
+#define Upa_CommunicationLib_ComType    1
+#define Upa_CommunicationLib_EthType    2
+
 class Upa_CommunicationLib
 {
     private:
+        bool is_open;
         QSerialPort com_port;
+        QUdpSocket* eth_port;
+        QString port_name;
         QMutex* com_lock;
         int detect_baudrate(void);
 
@@ -41,14 +49,15 @@ class Upa_CommunicationLib
         Upa_CommunicationLib();
         ~Upa_CommunicationLib();
 
-        bool is_open;
+        int port_type;
 
-        int open_port(QString port_name);
+        int open_port(QString name);
         int close_port();
         int check_port();
         int write_reg(const unsigned int addr, unsigned int& data);
         int read_reg(const unsigned int addr, unsigned int& data);
-
+        QList<QString> create_eth_ports(void);
+        int destroy_eth_ports(void);
 };
 
 #endif // Upa_CommunicationLib_H

@@ -77,6 +77,8 @@ private slots:
     void calibrate_read_values_timer(void);
     void calibrate_read_values_button_clicked(void);
     void calibrate_write_values_button_clicked(void);
+    void calibrate_read_mac_ip_values_button_clicked(void);
+    void calibrate_write_mac_ip_values_button_clicked(void);
     void calibrate_calibrate_button_clicked(void);
 };
 

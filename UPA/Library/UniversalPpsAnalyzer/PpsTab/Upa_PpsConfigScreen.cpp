@@ -53,6 +53,8 @@ Upa_PpsConfigScreen::Upa_PpsConfigScreen(Upa_PpsTab *parent) : QWidget()
             temp_string.append(QString("%1").arg((pps_tab->upa->ts_core_config.at(i).core_instance_nr-1), 2, 10, QLatin1Char('0')).toUpper());
         }
         (pps_tab->pps_offset_names.at(i))->clear();
+        (pps_tab->pps_offset_names.at(i))->append(pps_tab->upa->ts_core_config.at(i).com_port);
+        (pps_tab->pps_offset_names.at(i))->append("_");
         (pps_tab->pps_offset_names.at(i))->append(temp_string);
 
     }

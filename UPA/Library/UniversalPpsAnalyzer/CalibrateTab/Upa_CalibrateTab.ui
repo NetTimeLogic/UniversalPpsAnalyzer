@@ -949,6 +949,90 @@
     <string>Calibrate</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="CalibrateWriteMacIpValuesButton">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>530</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Write MAC+ IP</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="PpsMacAddressLabel">
+   <property name="geometry">
+    <rect>
+     <x>139</x>
+     <y>500</y>
+     <width>70</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>MAC Address</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="PpsMacAddressValue">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>500</y>
+     <width>120</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>NA</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="CalibrateReadMacIpValuesButton">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>500</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Read MAC+ IP</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="PpsIpAddressLabel">
+   <property name="geometry">
+    <rect>
+     <x>139</x>
+     <y>530</y>
+     <width>70</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>IP Address</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="PpsIpAddressValue">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>530</y>
+     <width>120</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>NA</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

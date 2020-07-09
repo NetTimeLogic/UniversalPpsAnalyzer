@@ -265,24 +265,25 @@ Upa_PpsTab::~Upa_PpsTab()
         temp_string.append("_PPS_");
         temp_string.append(QString("%1").arg((upa->ts_core_config.at(i).core_instance_nr-1), 2, 10, QLatin1Char('0')).toUpper());
 
-        temp_addr =  upa->ts_core_config.at(i).address_range_low;
-        temp_data = 0x00000001;
-        if (0 == upa->ts_core_config.at(i).com_lib->write_reg(temp_addr + Upa_ClkTs_ControlReg, temp_data))
-        {
-            cout << "VERBOSE: " << "disabled " << temp_string.toLatin1().constData() << endl;
-        }
-        else
-        {
-            cout << "ERROR: " << "could not disable" << temp_string.toLatin1().constData() << endl;
-        }
-        if (0 == upa->ts_core_config.at(i).com_lib->write_reg(temp_addr + Upa_ClkTs_IrqMaskReg, temp_data))
-        {
-            cout << "VERBOSE: " << "disabled irq on " << temp_string.toLatin1().constData() << endl;
-        }
-        else
-        {
-            cout << "ERROR: " << "could not disable irq on" << temp_string.toLatin1().constData() << endl;
-        }
+        // do not disable
+        //temp_addr =  upa->ts_core_config.at(i).address_range_low;
+        //temp_data = 0x00000000;
+        //if (0 == upa->ts_core_config.at(i).com_lib->write_reg(temp_addr + Upa_ClkTs_ControlReg, temp_data))
+        //{
+        //    cout << "VERBOSE: " << "disabled " << temp_string.toLatin1().constData() << endl;
+        //}
+        //else
+        //{
+        //    cout << "ERROR: " << "could not disable" << temp_string.toLatin1().constData() << endl;
+        //}
+        //if (0 == upa->ts_core_config.at(i).com_lib->write_reg(temp_addr + Upa_ClkTs_IrqMaskReg, temp_data))
+        //{
+        //    cout << "VERBOSE: " << "disabled irq on " << temp_string.toLatin1().constData() << endl;
+        //}
+        //else
+        //{
+        //    cout << "ERROR: " << "could not disable irq on" << temp_string.toLatin1().constData() << endl;
+        //}
     }
 
     delete ui;
@@ -377,8 +378,10 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
 {
     unsigned int temp_nanoseconds = 0;
     long long temp_signed_offset;
+    unsigned int temp_irq = 0;
     unsigned int temp_data = 0;
     unsigned int temp_addr = 0;
+    QColor temp_color;
 
     for (int k = 0; k < upa->ts_core_config.size(); k++)
     {
@@ -389,10 +392,57 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
             //********************************
             // get timestamp
             //********************************
-            if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
+            //if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_IrqReg, temp_irq))
+            //{
+                //if ((temp_irq & 0x00000001) != 0)
+                //{
+            if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_StatusReg, temp_data)) // check if the PPS has activity at all (within the last 1.5s)
             {
-                if ((temp_data & 0x00000001) != 0)
+                if ((temp_data & 0x00000002) != 0)
                 {
+                    // change color to the one we had before disconnecting
+                    if (upa->ts_core_config.at(k).core_instance_nr > 1)
+                    {
+                        switch (upa->ts_core_config.at(k).core_instance_nr-2) // only 8 PPS per analyzer
+                        {
+                            case 0:
+                                temp_color.setRgb(255, 64, 64);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 1:
+                                temp_color.setRgb(64, 255, 64);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 2:
+                                temp_color.setRgb(64, 64, 255);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 3:
+                                temp_color.setRgb(255, 64, 255);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 4:
+                                temp_color.setRgb(160, 64, 64);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 5:
+                                temp_color.setRgb(64, 160, 64);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 6:
+                                temp_color.setRgb(64, 64, 160);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            case 7:
+                                temp_color.setRgb(160, 64, 160);
+                                pps_offset_series.at(k)->setColor(temp_color);
+                                break;
+                            default:
+                                pps_offset_series.at(k)->setColor(Qt::black);
+                                break;
+                        }
+                    }
+
                     // nanoseconds
                     if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_TimeValueLReg, temp_data))
                     {
@@ -400,15 +450,15 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
                     }
 
                     // clear irq
-                    temp_data = 0x00000001;
-                    if (0 == upa->ts_core_config.at(k).com_lib->write_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
-                    {
-                        // nothing irq cleared
-                    }
-                    else
-                    {
-                        cout << "ERROR: " << "irq cleaning didn't work" << endl;
-                    }
+                    //temp_data = temp_irq;
+                    //if (0 == upa->ts_core_config.at(k).com_lib->write_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
+                    //{
+                    //    // nothing irq cleared
+                    //}
+                    //else
+                    //{
+                    //    cout << "ERROR: " << "irq cleaning didn't work" << endl;
+                    //}
 
                     if(temp_nanoseconds > 500000000)
                     {
@@ -452,7 +502,7 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
                         *(pps_offset_thresholds_high_exceeded.at(k)) = 0;
                     }
 
-                    // threshold high check
+                    // threshold low check
                     if ((*(pps_offset_thresholds.at(k)) != 0) && (*(pps_offset_show.at(k)) != 0) &&
                         (*(pps_offset_thresholds_low.at(k)) > temp_signed_offset))
                     {
@@ -477,6 +527,36 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
                         }
                         pps_offsets.at(k)[(100000-1)] = (int)temp_signed_offset;
                     }
+                }
+                else
+                {
+                    temp_signed_offset = 0; // just say 0
+                    // shift
+                    if (*(pps_offset_number_of_points.at(k)) < 100000)
+                    {
+                        pps_offsets.at(k)[*(pps_offset_number_of_points.at(k))] = (int)temp_signed_offset;
+                        *(pps_offset_number_of_points.at(k)) = *(pps_offset_number_of_points.at(k)) + 1;
+                    }
+                    else
+                    {
+                        for (int i = 1; i <= (100000-1); i++)
+                        {
+                           pps_offsets.at(k)[i-1] = pps_offsets.at(k)[i];
+                        }
+                        pps_offsets.at(k)[(100000-1)] = (int)temp_signed_offset;
+                    }
+
+                    // we don't care on thresholds if we don't have a PPS
+                    *(pps_offset_thresholds_high_exceeded.at(k)) = 0;
+                    *(pps_offset_thresholds_low_exceeded.at(k)) = 0;
+
+                    // change color to a mid grey
+                    if (upa->ts_core_config.at(k).core_instance_nr > 1)
+                    {
+                        temp_color.setRgb(128, 128, 128);
+                        pps_offset_series.at(k)->setColor(temp_color);
+                    }
+
                 }
             }
         }
@@ -741,8 +821,8 @@ void Upa_PpsTab::pps_read_values(void)
     for (int k = 0; k < upa->ts_core_config.size(); k++)
     {
         temp_string.clear();
-        temp_string.append(upa->ts_core_config.at(k).com_port);
-        temp_string.append("_");
+        //temp_string.append(upa->ts_core_config.at(k).com_port);
+        //temp_string.append("_");
         temp_string.append(*(pps_offset_names.at(k)));
         pps_offset_series.at(k)->setName(temp_string);
         if (*(pps_offset_show.at(k)) == 0)

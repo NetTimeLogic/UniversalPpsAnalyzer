@@ -50,6 +50,8 @@ Upa_CalibrateTab::Upa_CalibrateTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
 
     connect(ui->CalibrateReadValuesButton, SIGNAL(clicked()), this, SLOT(calibrate_read_values_button_clicked()));
     connect(ui->CalibrateWriteValuesButton, SIGNAL(clicked()), this, SLOT(calibrate_write_values_button_clicked()));
+    connect(ui->CalibrateReadMacIpValuesButton, SIGNAL(clicked()), this, SLOT(calibrate_read_mac_ip_values_button_clicked()));
+    connect(ui->CalibrateWriteMacIpValuesButton, SIGNAL(clicked()), this, SLOT(calibrate_write_mac_ip_values_button_clicked()));
     connect(ui->CalibrateCalibrateButton, SIGNAL(clicked()), this, SLOT(calibrate_calibrate_button_clicked()));
     connect(calibrate_timer, SIGNAL(timeout()), this, SLOT(calibrate_read_values_timer()));
 }
@@ -256,9 +258,13 @@ void Upa_CalibrateTab::calibrate_read_ts_values(void)
             //********************************
             // get timestamp
             //********************************
-            if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
+            //if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
+            //{
+                //if ((temp_data & 0x00000001) != 0)
+                //{
+            if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_StatusReg, temp_data)) // check if the PPS has activity at all (within the last 1.5s)
             {
-                if ((temp_data & 0x00000001) != 0)
+                if ((temp_data & 0x00000002) != 0)
                 {
                     // nanoseconds
                     if (0 == upa->ts_core_config.at(k).com_lib->read_reg(temp_addr + Upa_ClkTs_TimeValueLReg, temp_data))
@@ -267,15 +273,15 @@ void Upa_CalibrateTab::calibrate_read_ts_values(void)
                     }
 
                     // clear irq
-                    temp_data = 0x00000001;
-                    if (0 == upa->ts_core_config.at(k).com_lib->write_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
-                    {
-                        // nothing irq cleared
-                    }
-                    else
-                    {
-                        cout << "ERROR: " << "irq cleaning didn't work" << endl;
-                    }
+                    //temp_data = 0x00000001;
+                    //if (0 == upa->ts_core_config.at(k).com_lib->write_reg(temp_addr + Upa_ClkTs_IrqReg, temp_data))
+                    //{
+                    //    // nothing irq cleared
+                    //}
+                    //else
+                    //{
+                    //    cout << "ERROR: " << "irq cleaning didn't work" << endl;
+                    //}
 
                     if(temp_nanoseconds > 500000000)
                     {
@@ -288,42 +294,44 @@ void Upa_CalibrateTab::calibrate_read_ts_values(void)
                     // compensate
                     temp_signed_offset -= temp_ref_offset;
 
-                    switch (upa->ts_core_config.at(k).core_instance_nr) {
-                        case 1:
-                            temp_ref_offset = temp_signed_offset;
-                            ui->PpsOffsetPpsRefInValue->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 2:
-                            ui->PpsOffsetPps1Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 3:
-                            ui->PpsOffsetPps2Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 4:
-                            ui->PpsOffsetPps3Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 5:
-                            ui->PpsOffsetPps4Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 6:
-                            ui->PpsOffsetPps5Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 7:
-                            ui->PpsOffsetPps6Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 8:
-                            ui->PpsOffsetPps7Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        case 9:
-                            ui->PpsOffsetPps8Value->setText(QString::number(temp_signed_offset));
-                            break;
-                        default:
-                            break;
-                    }
                 }
                 else
                 {
-                    // TODO start timeout counter
+                    temp_signed_offset = 0;
+                }
+
+                switch (upa->ts_core_config.at(k).core_instance_nr)
+                {
+                    case 1:
+                        temp_ref_offset = temp_signed_offset;
+                        ui->PpsOffsetPpsRefInValue->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 2:
+                        ui->PpsOffsetPps1Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 3:
+                        ui->PpsOffsetPps2Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 4:
+                        ui->PpsOffsetPps3Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 5:
+                        ui->PpsOffsetPps4Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 6:
+                        ui->PpsOffsetPps5Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 7:
+                        ui->PpsOffsetPps6Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 8:
+                        ui->PpsOffsetPps7Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    case 9:
+                        ui->PpsOffsetPps8Value->setText(QString::number(temp_signed_offset));
+                        break;
+                    default:
+                        break;
                 }
             }
         }
@@ -1279,6 +1287,122 @@ void Upa_CalibrateTab::calibrate_write_values_button_clicked(void)
     calibrate_read_values();
 }
 
+void Upa_CalibrateTab::calibrate_read_mac_ip_values_button_clicked(void)
+{
+    unsigned int temp_data = 0;
+    unsigned int temp_addr = 0;
+    QString temp_string;
+
+    for (int k = 0; k < upa->i2c_core_config.size(); k++)
+    {
+        if (ui->PpsAnalyzerComboBox->currentText() == upa->i2c_core_config.at(k).com_port)
+        {
+            // mac
+            temp_string.clear();
+            for (temp_addr = 32; temp_addr <= 37; temp_addr++)
+            {
+                if (0 == calibrate_eeprom_read_reg(&(upa->i2c_core_config.at(k)), temp_addr, temp_data))
+                {
+                    temp_string.append(QString("%1").arg((temp_data & 0x000000FF), 2, 16, QLatin1Char('0')));
+                    if (temp_addr == 37)
+                    {
+                        ui->PpsMacAddressValue->setText(temp_string);
+                    }
+                    else
+                    {
+                        temp_string.append(":");
+                    }
+                }
+                else
+                {
+                    ui->PpsMacAddressValue->setText("NA");
+                    break;
+                }
+            }
+
+            // ip
+            temp_string.clear();
+            for (temp_addr = 40; temp_addr <= 43; temp_addr++)
+            {
+                if (0 == calibrate_eeprom_read_reg(&(upa->i2c_core_config.at(k)), temp_addr, temp_data))
+                {
+                    temp_string.append(QString::number(temp_data));
+                    if (temp_addr == 43)
+                    {
+                        ui->PpsIpAddressValue->setText(temp_string);
+                    }
+                    else
+                    {
+                        temp_string.append(".");
+                    }
+                }
+                else
+                {
+                    ui->PpsIpAddressValue->setText("NA");
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void Upa_CalibrateTab::calibrate_write_mac_ip_values_button_clicked(void)
+{
+    unsigned long long temp_mac;
+    unsigned long temp_ip;
+    unsigned int temp_data = 0;
+    unsigned int temp_addr = 0;
+    QString temp_string;
+
+    for (int k = 0; k < upa->i2c_core_config.size(); k++)
+    {
+        if (ui->PpsAnalyzerComboBox->currentText() == upa->i2c_core_config.at(k).com_port)
+        {
+            // mac
+            temp_string = ui->PpsMacAddressValue->text();
+            temp_string.remove(QChar(':'), Qt::CaseInsensitive);
+            temp_mac = temp_string.toULongLong(nullptr, 16);
+            if (ui->PpsMacAddressValue->text() != "NA")
+            {
+                for (temp_addr = 32; temp_addr <= 37; temp_addr++)
+                {
+                    temp_data = (temp_mac >> ((37-temp_addr)*8)) & 0xFF;
+                    if (0 == calibrate_eeprom_write_reg(&(upa->i2c_core_config.at(k)), temp_addr, temp_data))
+                    {
+                        // nothing
+                    }
+                    else
+                    {
+                        ui->PpsMacAddressValue->setText("NA");
+                        break;
+                    }
+                }
+            }
+
+            // ip
+            temp_string = ui->PpsIpAddressValue->text();
+            temp_ip = QHostAddress(temp_string).toIPv4Address();
+            if (ui->PpsIpAddressValue->text() != "NA")
+            {
+                for (temp_addr = 40; temp_addr <= 43; temp_addr++)
+                {
+                    temp_data = (temp_ip >> ((43-temp_addr)*8)) & 0xFF;
+                    if (0 == calibrate_eeprom_write_reg(&(upa->i2c_core_config.at(k)), temp_addr, temp_data))
+                    {
+                        // nothing
+                    }
+                    else
+                    {
+                        ui->PpsIpAddressValue->setText("NA");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    calibrate_read_mac_ip_values_button_clicked();
+}
+
 void Upa_CalibrateTab::calibrate_calibrate_button_clicked(void)
 {
     QElapsedTimer temp_timer;
@@ -1314,9 +1438,18 @@ void Upa_CalibrateTab::calibrate_calibrate_button_clicked(void)
             progress_clear.setWindowModality(Qt::WindowModal);
             for (unsigned int i = 0; i < 128; i++)
             {
-                temp_addr = i;
-                temp_data = 0x00;
-                calibrate_eeprom_write_reg(&(upa->i2c_core_config.at(k)), temp_addr, temp_data);
+                if (((i >= 32) && (i <= 37)) ||
+                    ((i >= 40) && (i <= 43)))
+                {
+                    // don't clear the mac and ip
+                }
+                else
+                {
+                    temp_addr = i;
+                    temp_data = 0x00;
+                    calibrate_eeprom_write_reg(&(upa->i2c_core_config.at(k)), temp_addr, temp_data);
+                }
+
                 progress_clear.setValue(i+1);
                 if (progress_clear.wasCanceled())
                 {
