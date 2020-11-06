@@ -27,6 +27,8 @@
 #include <QThread>
 #include <QNetworkInterface>
 #include <QNetworkDatagram>
+
+
 using namespace std;
 
 static QList<QString> eth_ports;
@@ -51,7 +53,7 @@ Upa_CommunicationLib::~Upa_CommunicationLib()
     com_lock->unlock();
 }
 
-QList<QString> Upa_CommunicationLib::create_eth_ports(void)
+QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_eth_itf_names)
 {
     QList<QNetworkInterface> eth_interfaces = QNetworkInterface::allInterfaces();
     int data_length;
@@ -61,7 +63,7 @@ QList<QString> Upa_CommunicationLib::create_eth_ports(void)
     QString temp_string;
     int nr_of_devices;
 
-    // send command
+    // Test command preparation
     write_data.append("$CC");
     checksum = 0;
     for (int i = 1; i < write_data.size(); i++)
@@ -75,7 +77,7 @@ QList<QString> Upa_CommunicationLib::create_eth_ports(void)
 
     temp_string = write_data.constData();
     temp_string.chop(2);
-    cout << "VERBOSE: " << "sent command: " << temp_string.toLatin1().constData() << endl;
+    cout << "VERBOSE: " << "Command to be sent: " << temp_string.toLatin1().constData() << endl;
 
     for (int i = 0; i < eth_ports.size(); i++)
     {
@@ -92,81 +94,112 @@ QList<QString> Upa_CommunicationLib::create_eth_ports(void)
 
     for (int i = 0; i < eth_interfaces.size(); i++)
     {
-        nr_of_devices = 0;
-        QUdpSocket* temp_socket = new(QUdpSocket);
-        if (false == temp_socket->bind(QHostAddress::AnyIPv4, 0xBEEF, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
+        // if interface name was selected by user
+        if (true == selected_eth_itf_names.contains(eth_interfaces.at(i).humanReadableName()))
         {
-            cout << "ERROR: " << "bind port failed" << endl;
-            continue;
-        }
-
-        cout << "VERBOSE: " << "trying on interface: " << eth_interfaces.at(i).name().toLatin1().constData() << endl;
-
-        QNetworkDatagram temp_datagram;
-        temp_datagram.setData(write_data);
-        temp_datagram.setDestination(QHostAddress::Broadcast, 0xBEEF);
-        temp_datagram.setInterfaceIndex(eth_interfaces.at(i).index());
-        temp_datagram.setSender(eth_interfaces.at(i).addressEntries().at(0).ip(), 0xBEEF);
-
-        data_length = temp_socket->writeDatagram(temp_datagram);
-        if (data_length == -1)
-        {
-            cout << "ERROR: " << "write failed" << endl;
-            goto cleanup;
-        }
-        else if (data_length != write_data.size())
-        {
-            cout << "ERROR: " << "write failed to send all data" << endl;
-            goto cleanup;
-        }
-
-        // check response
-        while (1)
-        {
-            if (false == temp_socket->waitForReadyRead(50))
+        	nr_of_devices = 0;
+            cout << "VERBOSE: " << "trying on interface: " << eth_interfaces.at(i).name().toLatin1().constData() << "; " <<  endl ;
+	        QUdpSocket* temp_socket = new(QUdpSocket);
+	        if (false == temp_socket->bind(QHostAddress::AnyIPv4, 0xBEEF, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
+	        {
+	            cout << "ERROR: " << "bind port failed" << endl;
+	            continue;
+	        }
+            else
             {
-                cout << "ERROR: " << "no response received" << endl;
-                goto cleanup;
+                cout << "VERBOSE: " << "bind port succeeded " << endl;
             }
 
-            if (true == temp_socket->hasPendingDatagrams())
+            // Check that the interface UP before proceeding
+            if (eth_interfaces.at(i).flags() & QNetworkInterface::IsUp)
             {
-                QHostAddress src_addr;
-                quint16 src_port;
-
-                read_data.resize(temp_socket->pendingDatagramSize());
-                temp_socket->readDatagram(read_data.data(), read_data.size(), &src_addr, &src_port);
-
-                temp_string.clear();
-                temp_string = read_data.constData();
-                temp_string.chop(2);
-                cout << "VERBOSE: " << "received command: " << temp_string.toLatin1().constData() << endl;
-
-                if (true == read_data.startsWith("$CC"))
-                {
-                    continue;
-                }
-                if (true == read_data.startsWith("$CR"))
-                {
-                    cout << "VERBOSE: " << "found eth node at: " << src_addr.toString().toLatin1().constData() << endl;
-                    nr_of_devices++;
-                    eth_ports.append(src_addr.toString());
-                    eth_sockets.append(temp_socket);
-                }
-
+                cout << "VERBOSE: Interface is Up :)" << endl ;
             }
             else
             {
-                cout << "ERROR: " << "no packet available" << endl;
+                cout << "VERBOSE: Interface is Down... :( ...skipping... "  << endl ;
                 goto cleanup;
             }
-        }
+            // Check that IP stack is congfigured for this interface
+            if (false == (eth_interfaces.at(i).addressEntries().size() > 0) )
+            {
+                cout << "ERROR: " << "IP stack not configured for this interface ->  Skipped ! " << endl ;
+                goto cleanup;
+            }
+			else
+            {
+		        QNetworkDatagram temp_datagram;
+		        temp_datagram.setData(write_data);
+		        temp_datagram.setDestination(QHostAddress::Broadcast, 0xBEEF);
+		        temp_datagram.setInterfaceIndex(eth_interfaces.at(i).index());
+		        temp_datagram.setSender(eth_interfaces.at(i).addressEntries().at(0).ip(), 0xBEEF);
+                data_length = temp_socket->writeDatagram(temp_datagram);
+            }
+	
+	        if (data_length == -1)
+	        {
+	            cout << "ERROR: " << "write failed" << endl;
+	            goto cleanup;
+	        }
+	        else if (data_length != write_data.size())
+	        {
+	            cout << "ERROR: " << "write failed to send all data" << endl;
+	            goto cleanup;
+	        }
+
+	        // check response
+	        while (1)
+	        {
+	            if (false == temp_socket->waitForReadyRead(50))
+	            {
+	                cout << "ERROR: " << "no response received" << endl;
+	                goto cleanup;
+	            }
+	
+	            if (true == temp_socket->hasPendingDatagrams())
+	            {
+	                QHostAddress src_addr;
+	                quint16 src_port;
+	
+	                read_data.resize(temp_socket->pendingDatagramSize());
+	                temp_socket->readDatagram(read_data.data(), read_data.size(), &src_addr, &src_port);
+	
+	                temp_string.clear();
+	                temp_string = read_data.constData();
+	                temp_string.chop(2);
+	                cout << "VERBOSE: " << "received command: " << temp_string.toLatin1().constData() << endl;
+	
+	                if (true == read_data.startsWith("$CC"))
+	                {
+	                    continue;
+	                }
+	                if (true == read_data.startsWith("$CR"))
+	                {
+	                    cout << "VERBOSE: " << "found eth node at: " << src_addr.toString().toLatin1().constData() << endl;
+	                    nr_of_devices++;
+	                    eth_ports.append(src_addr.toString());
+	                    eth_sockets.append(temp_socket);
+	                }
+	
+	            }
+	            else
+	            {
+	                cout << "ERROR: " << "no packet available" << endl;
+	                goto cleanup;
+	            }
+	        }
 
 cleanup:
-        if (nr_of_devices == 0)
+	        if (nr_of_devices == 0)
+	        {
+	            temp_socket->close();
+	        }
+    	}
+        else
         {
-            temp_socket->close();
+            cout << "VERBOSE: " << "skipped unselected interface: " << eth_interfaces.at(i).name().toLatin1().constData() << "; " <<  endl ;
         }
+
     }
     return eth_ports;
 }
@@ -182,6 +215,8 @@ int Upa_CommunicationLib::destroy_eth_ports(void)
     }
     eth_ports.clear();
     eth_sockets.clear();
+
+    return 0;
 }
 
 int Upa_CommunicationLib::detect_baudrate(void)
@@ -303,7 +338,6 @@ int Upa_CommunicationLib::detect_baudrate(void)
 	
 	    cout << "ERROR: no valid baudrate detected" << endl;
 	    return -1;
-
     }
     else
     {
@@ -314,13 +348,13 @@ int Upa_CommunicationLib::detect_baudrate(void)
 
 int Upa_CommunicationLib::open_port(QString name)
 {
-    int data_length;
+    int data_length=-1;
     QByteArray read_data;
     QByteArray write_data;
     unsigned char checksum;
     QString temp_string;
 
-    cout << "INFO: " << "Opening Port:" << endl;
+    cout << "INFO: " << "Opening Port: " << name.toLatin1().constData() << endl;
 
     com_lock->lock();
     if (is_open == true)
@@ -330,7 +364,8 @@ int Upa_CommunicationLib::open_port(QString name)
         return -1;
     }
 
-    if (true == name.startsWith("COM"))
+    if ((true == name.startsWith("COM")) || 
+        (true == name.startsWith("tty")))
     {
         port_name = name;
 	    com_port.setPortName(port_name);
@@ -405,7 +440,7 @@ int Upa_CommunicationLib::open_port(QString name)
 
     temp_string = write_data.constData();
     temp_string.chop(2);
-    cout << "VERBOSE: " << "sent command: " << temp_string.toLatin1().constData() << endl;
+    cout << "VERBOSE: " << "command to be sent : " << temp_string.toLatin1().constData() << endl;
 
     if (port_type == Upa_CommunicationLib_ComType)
     {
@@ -527,7 +562,7 @@ int Upa_CommunicationLib::open_port(QString name)
                 else
                 {
                     read_data.clear();
-                    //cout << "VERBOSE: " << "frame received from an unexpected source:" << src_addr.toString().constData() << endl;
+                    cout << "VERBOSE: " << "frame received from an unexpected source:" << src_addr.toString().constData() << endl;
                     continue;
                 }
             }
@@ -555,7 +590,7 @@ int Upa_CommunicationLib::open_port(QString name)
     {
         if (port_type == Upa_CommunicationLib_ComType)
         {
-        com_port.close();
+        	com_port.close();
         }
         else if (port_type == Upa_CommunicationLib_EthType)
         {
@@ -689,14 +724,14 @@ int Upa_CommunicationLib::check_port()
 	
 	    if (com_port.error() == QSerialPort::ReadError)
 	    {
-            com_port.close();
+            //com_port.close();
 	        cout << "ERROR: " << "read failed" << endl;
 	        com_lock->unlock();
 	        return -1;
 	    }
 	    else if (com_port.error() == QSerialPort::TimeoutError && read_data.isEmpty())
 	    {
-            com_port.close();
+            //com_port.close();
             cout << "ERROR: " << "no response received" << endl;
             com_lock->unlock();
             return -1;

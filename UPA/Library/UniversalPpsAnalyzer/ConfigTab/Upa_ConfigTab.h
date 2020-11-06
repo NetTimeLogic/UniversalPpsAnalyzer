@@ -38,6 +38,7 @@ class Upa_UniversalPpsAnalyzer;
 #define Upa_Config_BaseAddrHReg                         0x00000008
 #define Upa_Config_IrqMaskReg                           0x0000000C
 
+
 namespace Ui {
 class Upa_ConfigTab;
 }
@@ -50,7 +51,6 @@ public:
     Upa_UniversalPpsAnalyzer* upa;
     Upa_ConfigTab(Upa_UniversalPpsAnalyzer* parent);
     ~Upa_ConfigTab();
-
     int config_resize(int height, int width);
 
 private:
@@ -58,16 +58,13 @@ private:
 
     // Config tab
     QTimer* config_timer;
+    void config_init_interfaces(void);
+
 
 private slots:
     void config_connect_button_clicked(void);
     void config_full_screen_button_clicked(void);
     void config_com_port_check_timer(void);
-};
-
-struct Upa_ConfigUser {
-    Upa_ConfigTab* config;
-    QString eth_port;
 };
 
 #endif // UPA_CONFIGTAB_H

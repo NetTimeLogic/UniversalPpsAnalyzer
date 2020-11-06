@@ -245,8 +245,8 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
 Upa_PpsTab::~Upa_PpsTab()
 {
     QString temp_string;
-    unsigned int temp_data = 0;
-    unsigned int temp_addr = 0;
+    //unsigned int temp_data = 0;
+    //unsigned int temp_addr = 0;
 
     pps_timer->stop();
 
@@ -378,7 +378,7 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
 {
     unsigned int temp_nanoseconds = 0;
     long long temp_signed_offset;
-    unsigned int temp_irq = 0;
+    //unsigned int temp_irq = 0;
     unsigned int temp_data = 0;
     unsigned int temp_addr = 0;
     QColor temp_color;
@@ -469,14 +469,14 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
                         temp_signed_offset = (long long)temp_nanoseconds;
                     }
 
-                    // limit to 100000 in display
-                    if (temp_signed_offset >= 100000)
+                    // limit to 1000000000 in display
+                    if (temp_signed_offset >= 1000000000)
                     {
-                        temp_signed_offset = 100000;
+                        temp_signed_offset = 1000000000;
                     }
-                    else if (temp_signed_offset <= -100000)
+                    else if (temp_signed_offset <= -1000000000)
                     {
-                        temp_signed_offset = -100000;
+                        temp_signed_offset = -1000000000;
                     }
 
                     // compensation
@@ -731,14 +731,14 @@ void Upa_PpsTab::pps_read_values(void)
         {
             if (temp_range > *pps_offset_number_of_points.at(k))
             {
-                for (int i = 0; i < *pps_offset_number_of_points.at(k); i++)
+                for (int i = 0; i < (int)*pps_offset_number_of_points.at(k); i++)
                 {
                     pps_offset_series.at(k)->append(i, pps_offsets.at(k)[i]);
                 }
             }
             else
             {
-                for (int i = 0; i < temp_range; i++)
+                for (int i = 0; i < (int)temp_range; i++)
                 {
                     pps_offset_series.at(k)->append(i, pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-temp_range+i)]);
                 }
@@ -783,27 +783,27 @@ void Upa_PpsTab::pps_read_values(void)
         }
         temp_max = ((temp_max/100)+1)*100;
         temp_min = ((temp_min/100)-1)*100;
-        if (temp_max > 100000)
+        if (temp_max > 1000000000)
         {
-            temp_max = 100000;
+            temp_max = 1000000000;
         }
-        if (temp_min < -100000)
+        if (temp_min < -1000000000)
         {
-            temp_min = -100000;
+            temp_min = -1000000000;
         }
     }
     else
     {
         temp_max = ui->PpsMaxScaleValue->text().toInt(nullptr, 10);
         temp_min = ui->PpsMinScaleValue->text().toInt(nullptr, 10);
-        if (temp_max > 100000)
+        if (temp_max > 1000000000)
         {
-            temp_max = 100000;
+            temp_max = 1000000000;
             ui->PpsMaxScaleValue->setText(QString::number(temp_max));
         }
-        if (temp_min < -100000)
+        if (temp_min < -1000000000)
         {
-            temp_min = -100000;
+            temp_min = -1000000000;
             ui->PpsMinScaleValue->setText(QString::number(temp_min));
         }
     }

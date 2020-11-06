@@ -28,6 +28,7 @@
 #include <QNetworkInterface>
 #include <QUdpSocket>
 #include <QMutex>
+#include <QListWidgetItem>
 
 #include <string>
 using namespace std;
@@ -56,7 +57,7 @@ class Upa_CommunicationLib
         int check_port();
         int write_reg(const unsigned int addr, unsigned int& data);
         int read_reg(const unsigned int addr, unsigned int& data);
-        QList<QString> create_eth_ports(void);
+        QList<QString> create_eth_ports(QList<QString>);
         int destroy_eth_ports(void);
 };
 

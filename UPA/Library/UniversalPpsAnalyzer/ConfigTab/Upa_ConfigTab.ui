@@ -19,9 +19,9 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>310</x>
      <y>100</y>
-     <width>1340</width>
+     <width>1050</width>
      <height>630</height>
     </rect>
    </property>
@@ -39,7 +39,7 @@ p, li { white-space: pre-wrap; }
   <widget class="QLabel" name="ConfigAddressMapLabel">
    <property name="geometry">
     <rect>
-     <x>20</x>
+     <x>310</x>
      <y>70</y>
      <width>80</width>
      <height>20</height>
@@ -47,6 +47,71 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>Address Map</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="ConfigSerialListLabel">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>70</y>
+     <width>270</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Available Serial Interface(s) *</string>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="ConfigSerialList">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>100</y>
+     <width>270</width>
+     <height>220</height>
+    </rect>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::MultiSelection</enum>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="ConfigEthernetList">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>380</y>
+     <width>270</width>
+     <height>220</height>
+    </rect>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::MultiSelection</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="ConfigEthernetListLabel">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>350</y>
+     <width>270</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Available Ethernet Interface(s) *</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="ConfigFullScreenButton">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>20</y>
+     <width>100</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Full Screen</string>
    </property>
   </widget>
   <widget class="QPushButton" name="ConfigConnectButton">
@@ -62,17 +127,17 @@ p, li { white-space: pre-wrap; }
     <string>Connect</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="ConfigFullScreenButton">
+  <widget class="QLabel" name="ConfigSelectLabel">
    <property name="geometry">
     <rect>
-     <x>130</x>
-     <y>20</y>
-     <width>100</width>
-     <height>20</height>
+     <x>30</x>
+     <y>650</y>
+     <width>261</width>
+     <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Full Screen</string>
+    <string>* Select Interfaces where to look for PPS Analyzers</string>
    </property>
   </widget>
  </widget>
