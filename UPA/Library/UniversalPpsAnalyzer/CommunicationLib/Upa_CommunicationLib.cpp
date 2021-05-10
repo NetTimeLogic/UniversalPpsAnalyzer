@@ -56,12 +56,14 @@ Upa_CommunicationLib::~Upa_CommunicationLib()
 QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_eth_itf_names)
 {
     QList<QNetworkInterface> eth_interfaces = QNetworkInterface::allInterfaces();
+    QNetworkInterface temp_interface;
     int data_length;
     QByteArray read_data;
     QByteArray write_data;
     unsigned char checksum;
     QString temp_string;
     int nr_of_devices;
+    int temp_response_count = 0;
 
     // Test command preparation
     write_data.append("$CC");
@@ -94,11 +96,13 @@ QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_e
 
     for (int i = 0; i < eth_interfaces.size(); i++)
     {
+        temp_interface = eth_interfaces.at(i);
+
         // if interface name was selected by user
-        if (true == selected_eth_itf_names.contains(eth_interfaces.at(i).humanReadableName()))
+        if (true == selected_eth_itf_names.contains(temp_interface.humanReadableName()))
         {
         	nr_of_devices = 0;
-            cout << "VERBOSE: " << "trying on interface: " << eth_interfaces.at(i).name().toLatin1().constData() << "; " <<  endl ;
+            cout << "VERBOSE: " << "trying on interface: " << temp_interface.name().toLatin1().constData() << "; " <<  endl ;
 	        QUdpSocket* temp_socket = new(QUdpSocket);
 	        if (false == temp_socket->bind(QHostAddress::AnyIPv4, 0xBEEF, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
 	        {
@@ -111,17 +115,17 @@ QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_e
             }
 
             // Check that the interface UP before proceeding
-            if (eth_interfaces.at(i).flags() & QNetworkInterface::IsUp)
+            if (temp_interface.flags() & QNetworkInterface::IsUp)
             {
-                cout << "VERBOSE: Interface is Up :)" << endl ;
+                cout << "VERBOSE: Interface is up" << endl ;
             }
             else
             {
-                cout << "VERBOSE: Interface is Down... :( ...skipping... "  << endl ;
+                cout << "VERBOSE: Interface is down...  "  << endl ;
                 goto cleanup;
             }
             // Check that IP stack is congfigured for this interface
-            if (false == (eth_interfaces.at(i).addressEntries().size() > 0) )
+            if (false == (temp_interface.addressEntries().size() > 0) )
             {
                 cout << "ERROR: " << "IP stack not configured for this interface ->  Skipped ! " << endl ;
                 goto cleanup;
@@ -129,10 +133,24 @@ QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_e
 			else
             {
 		        QNetworkDatagram temp_datagram;
-		        temp_datagram.setData(write_data);
+                QHostAddress temp_src_ip;
+                QList<QNetworkAddressEntry> temp_address_entries = temp_interface.addressEntries();
+                for (int j = 0; j < temp_address_entries.size(); j++)
+                {
+                    if (temp_address_entries.at(j).ip().protocol() == QAbstractSocket::IPv4Protocol)
+                    {
+                        temp_src_ip = temp_address_entries.at(j).ip();
+                    }
+                }
+                if (temp_src_ip.isNull())
+                {
+                    cout << "ERROR: " << "No IP on that interface" << endl ;
+                    goto cleanup;
+                }
+                temp_datagram.setData(write_data);
 		        temp_datagram.setDestination(QHostAddress::Broadcast, 0xBEEF);
-		        temp_datagram.setInterfaceIndex(eth_interfaces.at(i).index());
-		        temp_datagram.setSender(eth_interfaces.at(i).addressEntries().at(0).ip(), 0xBEEF);
+                temp_datagram.setInterfaceIndex(temp_interface.index());
+                temp_datagram.setSender(temp_src_ip, 0xBEEF);
                 data_length = temp_socket->writeDatagram(temp_datagram);
             }
 	
@@ -147,13 +165,17 @@ QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_e
 	            goto cleanup;
 	        }
 
-	        // check response
+            // check response
+            temp_response_count = 0;
 	        while (1)
 	        {
 	            if (false == temp_socket->waitForReadyRead(50))
 	            {
-	                cout << "ERROR: " << "no response received" << endl;
-	                goto cleanup;
+                    if (temp_response_count == 0)
+                    {
+                        cout << "ERROR: " << "no response received" << endl;
+                    }
+                    goto cleanup;
 	            }
 	
 	            if (true == temp_socket->hasPendingDatagrams())
@@ -177,6 +199,7 @@ QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_e
 	                {
 	                    cout << "VERBOSE: " << "found eth node at: " << src_addr.toString().toLatin1().constData() << endl;
 	                    nr_of_devices++;
+                        temp_response_count++;
 	                    eth_ports.append(src_addr.toString());
 	                    eth_sockets.append(temp_socket);
 	                }
@@ -193,11 +216,12 @@ cleanup:
 	        if (nr_of_devices == 0)
 	        {
 	            temp_socket->close();
+                delete(temp_socket);
 	        }
     	}
         else
         {
-            cout << "VERBOSE: " << "skipped unselected interface: " << eth_interfaces.at(i).name().toLatin1().constData() << "; " <<  endl ;
+            cout << "VERBOSE: " << "skipped unselected interface: " << temp_interface.name().toLatin1().constData() << "; " <<  endl ;
         }
 
     }
