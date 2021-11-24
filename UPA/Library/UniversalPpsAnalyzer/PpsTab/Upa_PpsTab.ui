@@ -88,7 +88,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>290</x>
+     <x>380</x>
      <y>20</y>
      <width>120</width>
      <height>20</height>
@@ -98,7 +98,7 @@
     <string>Raw Values</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="PpsSaveButton">
+  <widget class="QPushButton" name="PpsSaveViewButton">
    <property name="enabled">
     <bool>true</bool>
    </property>
@@ -111,7 +111,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Save</string>
+    <string>Save View</string>
    </property>
   </widget>
   <widget class="QPushButton" name="PpsLogButton">
@@ -120,7 +120,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>200</x>
+     <x>290</x>
      <y>20</y>
      <width>75</width>
      <height>20</height>
@@ -136,7 +136,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>425</x>
+     <x>515</x>
      <y>20</y>
      <width>120</width>
      <height>20</height>
@@ -149,7 +149,7 @@
   <widget class="QCheckBox" name="PpsFixedScaleCheckBox">
    <property name="geometry">
     <rect>
-     <x>870</x>
+     <x>960</x>
      <y>20</y>
      <width>80</width>
      <height>20</height>
@@ -165,7 +165,7 @@
   <widget class="QLabel" name="PpsMinScaleLabel">
    <property name="geometry">
     <rect>
-     <x>579</x>
+     <x>669</x>
      <y>20</y>
      <width>50</width>
      <height>20</height>
@@ -181,7 +181,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>630</x>
+     <x>720</x>
      <y>20</y>
      <width>80</width>
      <height>20</height>
@@ -197,7 +197,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>771</x>
+     <x>861</x>
      <y>20</y>
      <width>80</width>
      <height>20</height>
@@ -210,7 +210,7 @@
   <widget class="QLabel" name="PpsMaxScaleLabel">
    <property name="geometry">
     <rect>
-     <x>720</x>
+     <x>810</x>
      <y>20</y>
      <width>50</width>
      <height>20</height>
@@ -226,7 +226,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>960</x>
+     <x>1050</x>
      <y>20</y>
      <width>20</width>
      <height>20</height>
@@ -242,7 +242,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>990</x>
+     <x>1080</x>
      <y>20</y>
      <width>20</width>
      <height>20</height>
@@ -258,7 +258,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>1030</x>
+     <x>1120</x>
      <y>20</y>
      <width>120</width>
      <height>20</height>
@@ -271,7 +271,7 @@
   <widget class="QLabel" name="PpsOkNokLabel">
    <property name="geometry">
     <rect>
-     <x>1180</x>
+     <x>1270</x>
      <y>15</y>
      <width>30</width>
      <height>30</height>
@@ -293,6 +293,22 @@
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="PpsSaveValuesButton">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>20</y>
+     <width>75</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Save Values</string>
    </property>
   </widget>
  </widget>

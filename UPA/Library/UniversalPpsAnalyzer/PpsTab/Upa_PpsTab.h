@@ -58,6 +58,7 @@ class Upa_PpsThresholdScreen;
 #define Upa_IoConf_OutputEnableReg                      0x00000004
 #define Upa_IoConf_InputDataReg                         0x00000008
 
+#define Upa_MaxSamples                                  100000
 
 namespace Ui {
 class Upa_PpsTab;
@@ -82,10 +83,13 @@ public:
 public:
     Upa_UniversalPpsAnalyzer* upa;
     QList<QLineSeries*> pps_offset_series;
+    QDateTime pps_timestamps[Upa_MaxSamples];
+    unsigned int pps_timestamp_number_of_points;
     QList<int*> pps_offsets;
     QList<unsigned int*> pps_offset_number_of_points;
     QList<QString*> pps_offset_names;
     QList<int*> pps_offset_delays;
+    QList<int*> pps_offset_active;
     QList<int*> pps_offset_show;
     QList<int*> pps_offset_thresholds_high;
     QList<int*> pps_offset_thresholds_low;
@@ -117,7 +121,8 @@ private:
 private slots:
     // PPS tab
     void pps_clear_button_clicked(void);
-    void pps_save_button_clicked(void);
+    void pps_save_view_button_clicked(void);
+    void pps_save_values_button_clicked(void);
     void pps_log_button_clicked(void);
     void pps_compensate_values_button_clicked(void);
     void pps_read_values_timer(void);

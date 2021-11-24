@@ -32,7 +32,9 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     QString temp_string;
     unsigned int* temp_number_of_points;
     QString* temp_name;
+    int* temp_offsets;
     int* temp_delay;
+    int* temp_active;
     int* temp_show;
     int* temp_threshold_high;
     int* temp_threshold_low;
@@ -57,7 +59,8 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     ui->PpsZoomOutButton->setEnabled(true); // now we can zoom out for sure
 
     connect(ui->PpsClearButton, SIGNAL(clicked()), this, SLOT(pps_clear_button_clicked()));
-    connect(ui->PpsSaveButton, SIGNAL(clicked()), this, SLOT(pps_save_button_clicked()));
+    connect(ui->PpsSaveViewButton, SIGNAL(clicked()), this, SLOT(pps_save_view_button_clicked()));
+    connect(ui->PpsSaveValuesButton, SIGNAL(clicked()), this, SLOT(pps_save_values_button_clicked()));
     connect(ui->PpsLogButton, SIGNAL(clicked()), this, SLOT(pps_log_button_clicked()));
     connect(ui->PpsCompensateValuesButton, SIGNAL(clicked()), this, SLOT(pps_compensate_values_button_clicked()));
     connect(ui->PpsChangeDelaysButton, SIGNAL(clicked()), this, SLOT(pps_delay_button_clicked()));
@@ -68,8 +71,8 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
 
     for (int i = 0; i < upa->ts_core_config.size(); i++)
     {
-        int* temp_offsets = new int[100000];
-        memset(temp_offsets, 0, sizeof(int[100000]));
+        temp_offsets = new int[Upa_MaxSamples];
+        memset(temp_offsets, 0, sizeof(int[Upa_MaxSamples]));
         pps_offsets.append(temp_offsets);
     }
 
@@ -165,12 +168,18 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         }
         temp_delay = new(int);
         *temp_delay = 0;
+        temp_active = new(int);
+        *temp_active = 0;
         temp_show = new(int);
         *temp_show = 1;
-        temp_threshold_high_exceeded = new(int);
-        *temp_threshold_high_exceeded = 0;
-        temp_threshold_low_exceeded = new(int);
-        *temp_threshold_low_exceeded = 0;
+        temp_threshold_high_exceeded = new int[Upa_MaxSamples];
+        memset(temp_threshold_high_exceeded, 0, sizeof(int[Upa_MaxSamples]));
+        temp_threshold_low_exceeded = new int[Upa_MaxSamples];
+        memset(temp_threshold_low_exceeded, 0, sizeof(int[Upa_MaxSamples]));
+        //temp_threshold_high_exceeded = new(int);
+        //*temp_threshold_high_exceeded = 0;
+        //temp_threshold_low_exceeded = new(int);
+        //*temp_threshold_low_exceeded = 0;
         temp_threshold_high = new(int);
         temp_threshold_low = new(int);
         temp_threshold = new(int);
@@ -191,6 +200,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
         pps_offset_thresholds_high.append(temp_threshold_high);
         pps_offset_thresholds_low.append(temp_threshold_low);
         pps_offset_thresholds.append(temp_threshold);
+        pps_offset_active.append(temp_active);
         pps_offset_show.append(temp_show);
         pps_offset_names.append(temp_name);
         pps_offset_delays.append(temp_delay);
@@ -240,6 +250,8 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     ui_threshold->pps_reload();
 
     pps_offset_chart->legend()->setVisible(true);
+    
+    pps_timestamp_number_of_points = 0;
 }
 
 Upa_PpsTab::~Upa_PpsTab()
@@ -300,6 +312,7 @@ Upa_PpsTab::~Upa_PpsTab()
         delete pps_offset_thresholds_high.at(i);
         delete pps_offset_thresholds_low.at(i);
         delete pps_offset_thresholds.at(i);
+        delete pps_offset_active.at(i);
         delete pps_offset_show.at(i);
         pps_offset_names.at(i)->clear();
         delete pps_offset_names.at(i);
@@ -313,6 +326,7 @@ Upa_PpsTab::~Upa_PpsTab()
     pps_offset_thresholds_high.clear();
     pps_offset_thresholds_low.clear();
     pps_offset_thresholds.clear();
+    pps_offset_active.clear();
     pps_offset_show.clear();
     pps_offset_names.clear();
     pps_offset_delays.clear();
@@ -346,9 +360,9 @@ int Upa_PpsTab::pps_enable(void)
     {
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
-        memset(pps_offsets.at(i), 0, sizeof(int[100000]));
+        memset(pps_offsets.at(i), 0, sizeof(int[Upa_MaxSamples]));
     }
-
+    pps_timestamp_number_of_points = 0;
     pps_timer->start(1000);
     return 0;
 }
@@ -368,8 +382,9 @@ int Upa_PpsTab::pps_disable(void)
     {
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
-        memset(pps_offsets.at(i), 0, sizeof(int[100000]));
+        memset(pps_offsets.at(i), 0, sizeof(int[Upa_MaxSamples]));
     }
+    pps_timestamp_number_of_points = 0;
 
     return 0;
 }
@@ -379,6 +394,8 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
     unsigned int temp_nanoseconds = 0;
     long long temp_signed_offset;
     //unsigned int temp_irq = 0;
+    int temp_threshold_high_exceeded = 0;
+    int temp_threshold_low_exceeded = 0;
     unsigned int temp_data = 0;
     unsigned int temp_addr = 0;
     QColor temp_color;
@@ -400,6 +417,8 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
             {
                 if ((temp_data & 0x00000002) != 0)
                 {
+                    *(pps_offset_active.at(k)) = 1;
+                    
                     // change color to the one we had before disconnecting
                     if (upa->ts_core_config.at(k).core_instance_nr > 1)
                     {
@@ -495,60 +514,75 @@ void Upa_PpsTab::pps_read_ts(QString com_port)
                     if ((*(pps_offset_thresholds.at(k)) != 0) && (*(pps_offset_show.at(k)) != 0) &&
                         (*(pps_offset_thresholds_high.at(k)) < temp_signed_offset))
                     {
-                        *(pps_offset_thresholds_high_exceeded.at(k)) = 1;
+                        temp_threshold_high_exceeded = 1;
                     }
                     else
                     {
-                        *(pps_offset_thresholds_high_exceeded.at(k)) = 0;
+                       temp_threshold_high_exceeded = 0;
                     }
 
                     // threshold low check
                     if ((*(pps_offset_thresholds.at(k)) != 0) && (*(pps_offset_show.at(k)) != 0) &&
                         (*(pps_offset_thresholds_low.at(k)) > temp_signed_offset))
                     {
-                        *(pps_offset_thresholds_low_exceeded.at(k)) = 1;
+                        temp_threshold_low_exceeded = 1;
                     }
                     else
                     {
-                        *(pps_offset_thresholds_low_exceeded.at(k)) = 0;
+                        temp_threshold_low_exceeded = 0;
                     }
 
                     // shift
-                    if (*(pps_offset_number_of_points.at(k)) < 100000)
+                    if (*(pps_offset_number_of_points.at(k)) < Upa_MaxSamples)
                     {
                         pps_offsets.at(k)[*(pps_offset_number_of_points.at(k))] = (int)temp_signed_offset;
+                        pps_offset_thresholds_high_exceeded.at(k)[*(pps_offset_number_of_points.at(k))] = temp_threshold_high_exceeded;
+                        pps_offset_thresholds_low_exceeded.at(k)[*(pps_offset_number_of_points.at(k))] = temp_threshold_low_exceeded;
                         *(pps_offset_number_of_points.at(k)) = *(pps_offset_number_of_points.at(k)) + 1;
                     }
                     else
                     {
-                        for (int i = 1; i <= (100000-1); i++)
+                        for (int i = 1; i <= (Upa_MaxSamples-1); i++)
                         {
                            pps_offsets.at(k)[i-1] = pps_offsets.at(k)[i];
+                           pps_offset_thresholds_high_exceeded.at(k)[i-1] = pps_offset_thresholds_high_exceeded.at(k)[i];
+                           pps_offset_thresholds_low_exceeded.at(k)[i-1] = pps_offset_thresholds_low_exceeded.at(k)[i];
                         }
-                        pps_offsets.at(k)[(100000-1)] = (int)temp_signed_offset;
+                        pps_offsets.at(k)[(Upa_MaxSamples-1)] = (int)temp_signed_offset;
+                        pps_offset_thresholds_high_exceeded.at(k)[(Upa_MaxSamples-1)] = temp_threshold_high_exceeded;
+                        pps_offset_thresholds_low_exceeded.at(k)[(Upa_MaxSamples-1)] = temp_threshold_low_exceeded;
                     }
                 }
                 else
                 {
+                    *(pps_offset_active.at(k)) = 0;
+                    
                     temp_signed_offset = 0; // just say 0
+                    
+                    // we don't care on thresholds if we don't have a PPS
+                    temp_threshold_high_exceeded = 0;
+                    temp_threshold_low_exceeded = 0;
+
                     // shift
-                    if (*(pps_offset_number_of_points.at(k)) < 100000)
+                    if (*(pps_offset_number_of_points.at(k)) < Upa_MaxSamples)
                     {
                         pps_offsets.at(k)[*(pps_offset_number_of_points.at(k))] = (int)temp_signed_offset;
+                        pps_offset_thresholds_high_exceeded.at(k)[*(pps_offset_number_of_points.at(k))] = temp_threshold_high_exceeded;
+                        pps_offset_thresholds_low_exceeded.at(k)[*(pps_offset_number_of_points.at(k))] = temp_threshold_low_exceeded;
                         *(pps_offset_number_of_points.at(k)) = *(pps_offset_number_of_points.at(k)) + 1;
                     }
                     else
                     {
-                        for (int i = 1; i <= (100000-1); i++)
+                        for (int i = 1; i <= (Upa_MaxSamples-1); i++)
                         {
                            pps_offsets.at(k)[i-1] = pps_offsets.at(k)[i];
+                           pps_offset_thresholds_high_exceeded.at(k)[i-1] = pps_offset_thresholds_high_exceeded.at(k)[i];
+                           pps_offset_thresholds_low_exceeded.at(k)[i-1] = pps_offset_thresholds_low_exceeded.at(k)[i];
                         }
-                        pps_offsets.at(k)[(100000-1)] = (int)temp_signed_offset;
+                        pps_offsets.at(k)[(Upa_MaxSamples-1)] = (int)temp_signed_offset;
+                        pps_offset_thresholds_high_exceeded.at(k)[(Upa_MaxSamples-1)] = temp_threshold_high_exceeded;
+                        pps_offset_thresholds_low_exceeded.at(k)[(Upa_MaxSamples-1)] = temp_threshold_low_exceeded;
                     }
-
-                    // we don't care on thresholds if we don't have a PPS
-                    *(pps_offset_thresholds_high_exceeded.at(k)) = 0;
-                    *(pps_offset_thresholds_low_exceeded.at(k)) = 0;
 
                     // change color to a mid grey
                     if (upa->ts_core_config.at(k).core_instance_nr > 1)
@@ -600,12 +634,18 @@ void Upa_PpsTab::pps_read_values(void)
     temp_threshold_high_exceeded = 0;
     for (int i = 0; i < pps_offset_thresholds_high_exceeded.size(); i++)
     {
-        temp_threshold_high_exceeded |= *(pps_offset_thresholds_high_exceeded.at(i));
+        if (*pps_offset_number_of_points.at(i) > 0)
+        {
+            temp_threshold_high_exceeded |= pps_offset_thresholds_high_exceeded.at(i)[(*pps_offset_number_of_points.at(i)-1)];
+        }
     }
     temp_threshold_low_exceeded = 0;
     for (int i = 0; i < pps_offset_thresholds_low_exceeded.size(); i++)
     {
-        temp_threshold_low_exceeded |= *(pps_offset_thresholds_low_exceeded.at(i));
+        if (*pps_offset_number_of_points.at(i) > 0)
+        {
+            temp_threshold_low_exceeded |= pps_offset_thresholds_low_exceeded.at(i)[(*pps_offset_number_of_points.at(i)-1)];
+        }
     }
     QPixmap temp_pix;
     if ((temp_threshold_high_exceeded == 0) and (temp_threshold_low_exceeded == 0))
@@ -628,8 +668,11 @@ void Upa_PpsTab::pps_read_values(void)
         {
             if (upa->ts_core_config.at(j).com_port == upa->io_core_config.at(i).com_port)
             {
-                temp_threshold_high_exceeded |= *(pps_offset_thresholds_high_exceeded.at(j));
-                temp_threshold_low_exceeded |= *(pps_offset_thresholds_low_exceeded.at(j));
+                if (*pps_offset_number_of_points.at(j) > 0)
+                {
+                    temp_threshold_high_exceeded |= pps_offset_thresholds_high_exceeded.at(j)[(*pps_offset_number_of_points.at(j)-1)];
+                    temp_threshold_low_exceeded |= pps_offset_thresholds_low_exceeded.at(j)[(*pps_offset_number_of_points.at(j)-1)];
+                }
             }
         }
 
@@ -672,27 +715,60 @@ void Upa_PpsTab::pps_read_values(void)
             if (*pps_offset_number_of_points.at(k) > 0)
             {
                 pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-1)];
+                pps_offset_thresholds_high_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = pps_offset_thresholds_high_exceeded.at(k)[(*pps_offset_number_of_points.at(k)-1)];
+                pps_offset_thresholds_low_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = pps_offset_thresholds_low_exceeded.at(k)[(*pps_offset_number_of_points.at(k)-1)];
             }
             else
             {
                 pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = 0;
+                pps_offset_thresholds_high_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = 0;
+                pps_offset_thresholds_low_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = 0;
             }
-            if (*pps_offset_number_of_points.at(k) < 100000)
+            if (*pps_offset_number_of_points.at(k) < Upa_MaxSamples)
             {
                 *pps_offset_number_of_points.at(k) = *pps_offset_number_of_points.at(k) + 1;
             }
+        }
+    }
+    
+    // shift
+    if (pps_timestamp_number_of_points < Upa_MaxSamples)
+    {
+        pps_timestamps[pps_timestamp_number_of_points] = QDateTime::currentDateTime();
+        pps_timestamp_number_of_points = pps_timestamp_number_of_points + 1;
+    }
+    else
+    {
+        for (int i = 1; i <= (Upa_MaxSamples-1); i++)
+        {
+           pps_timestamps[i-1] = pps_timestamps[i];
+        }
+    }
+    
+    while (pps_timestamp_number_of_points < temp_number_of_points)
+    {
+        if (pps_timestamp_number_of_points > 0)
+        {
+            pps_timestamps[pps_timestamp_number_of_points] = pps_timestamps[(pps_timestamp_number_of_points-1)];
+        }
+        else
+        {
+            pps_timestamps[pps_timestamp_number_of_points] = QDateTime::currentDateTime();
+        }
+        if (pps_timestamp_number_of_points < Upa_MaxSamples)
+        {
+            pps_timestamp_number_of_points = pps_timestamp_number_of_points + 1;
         }
     }
 
     // log
     if (pps_log_values != 0)
     {
-        QDateTime temp_time = QDateTime::currentDateTime();
-        QString temp_timestamp = temp_time.toString("dd-MM-yyyy hh:mm:ss.zzz");
         QTextStream temp_stream(&pps_log_file);
 
         if (temp_number_of_points > 0)
         {
+            QString temp_timestamp = pps_timestamps[(temp_number_of_points-1)].toString("dd-MM-yyyy hh:mm:ss");
             temp_stream << temp_timestamp;
 
             for (int k = 0; k < upa->ts_core_config.size(); k++)
@@ -701,11 +777,42 @@ void Upa_PpsTab::pps_read_values(void)
                 temp_index = *pps_offset_number_of_points.at(k) - 1;
                 if (temp_index >= 0)
                 {
-                    temp_stream << ";" << QString::number(pps_offsets.at(k)[temp_index]);
+                    if (*(pps_offset_active.at(k)) == 1)
+                    {
+                        temp_stream << ";" << QString::number(pps_offsets.at(k)[temp_index]);
+                    }
+                    else
+                    {
+                        temp_stream << ";" << "-";
+                    }
                 }
                 else
                 {
-                    temp_stream << ";" << "0";
+                    temp_stream << ";" << "-";
+                }
+            }
+                
+            for (int k = 0; k < upa->ts_core_config.size(); k++)
+            {
+                int temp_index;
+                temp_index = *pps_offset_number_of_points.at(k) - 1;
+                if (temp_index >= 0)
+                {
+                    if ((*(pps_offset_active.at(k)) == 1) && (*(pps_offset_thresholds.at(k)) != 0))
+                    {
+                        temp_stream << ";" << QString::number(pps_offset_thresholds_high_exceeded.at(k)[temp_index]);
+                        temp_stream << ";" << QString::number(pps_offset_thresholds_low_exceeded.at(k)[temp_index]);
+                    }
+                    else
+                    {
+                        temp_stream << ";" << "-";
+                        temp_stream << ";" << "-";
+                    }
+                }
+                else
+                {
+                    temp_stream << ";" << "-";
+                    temp_stream << ";" << "-";
                 }
             }
             temp_stream << "\n";
@@ -847,7 +954,7 @@ void Upa_PpsTab::pps_clear_button_clicked(void)
     {
         *pps_offset_number_of_points.at(i) = 0;
         pps_offset_series.at(i)->clear();
-        memset(pps_offsets.at(i), 0, sizeof(int[100000]));
+        memset(pps_offsets.at(i), 0, sizeof(int[Upa_MaxSamples]));
     }
     pps_offset_chart->axisY()->setMin(-100);
     pps_offset_chart->axisY()->setMax(100);
@@ -855,7 +962,7 @@ void Upa_PpsTab::pps_clear_button_clicked(void)
     pps_offset_chart->show();
 }
 
-void Upa_PpsTab::pps_save_button_clicked(void)
+void Upa_PpsTab::pps_save_view_button_clicked(void)
 {
     QDateTime temp_time = QDateTime::currentDateTime();
     QString temp_string = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0);
@@ -890,9 +997,14 @@ void Upa_PpsTab::pps_log_button_clicked(void)
                 for (int k = 0; k < upa->ts_core_config.size(); k++)
                 {
                     temp_stream << ";" << pps_offset_series.at(k)->name();
+                }                
+                for (int k = 0; k < upa->ts_core_config.size(); k++)
+                {
+                    temp_stream << ";" << pps_offset_series.at(k)->name() << " threshold high (" << QString::number(*(pps_offset_thresholds_high.at(k))) << ") exceeded";
+                    temp_stream << ";" << pps_offset_series.at(k)->name() << " threshold low (" << QString::number(*(pps_offset_thresholds_low.at(k))) << ") exceeded";
                 }
                 temp_stream << "\n";
-
+                
                 pps_log_values = 1;
                 ui->PpsLogButton->setText("Stop Log");
             }
@@ -928,6 +1040,166 @@ void Upa_PpsTab::pps_log_button_clicked(void)
             default:
                 break;
         }
+    }
+}
+
+void Upa_PpsTab::pps_save_values_button_clicked(void)
+{
+    unsigned int temp_number_of_points;
+    int temp_index;
+    QFile pps_values_file;
+    QString temp_timestamp;
+    QDateTime temp_time = QDateTime::currentDateTime();
+    QString temp_string = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0);
+    temp_string.append("/pps_values_");
+    temp_string.append(temp_time.toString("dd-MM-yyyy_hh-mm-ss"));
+
+    QString temp_filename = QFileDialog::getSaveFileName(this, "save values", temp_string, "CSV(*.csv)");
+
+    if (temp_filename != "")
+    {
+        pps_values_file.setFileName(temp_filename);
+        if (true == pps_values_file.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream temp_stream(&pps_values_file);
+
+            temp_stream << "sep=;\n";
+            temp_stream << "Timestamp";
+            for (int k = 0; k < upa->ts_core_config.size(); k++)
+            {
+                temp_stream << ";" << pps_offset_series.at(k)->name();
+            }                
+            for (int k = 0; k < upa->ts_core_config.size(); k++)
+            {
+                temp_stream << ";" << pps_offset_series.at(k)->name() << " threshold high (" << QString::number(*(pps_offset_thresholds_high.at(k))) << ") exceeded";
+                temp_stream << ";" << pps_offset_series.at(k)->name() << " threshold low (" << QString::number(*(pps_offset_thresholds_low.at(k))) << ") exceeded";
+            }
+            temp_stream << "\n";
+            
+            // find max number
+            temp_number_of_points = 0;
+            for (int k = 0; k < upa->ts_core_config.size(); k++)
+            {
+                if (*pps_offset_number_of_points.at(k) > temp_number_of_points)
+                {
+                    temp_number_of_points = *pps_offset_number_of_points.at(k);
+                }
+            }
+            
+            // fill with old
+            for (int k = 0; k < upa->ts_core_config.size(); k++)
+            {
+                while (*pps_offset_number_of_points.at(k) < temp_number_of_points)
+                {
+                    if (*pps_offset_number_of_points.at(k) > 0)
+                    {
+                        pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = pps_offsets.at(k)[(*pps_offset_number_of_points.at(k)-1)];
+                        pps_offset_thresholds_high_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = pps_offset_thresholds_high_exceeded.at(k)[(*pps_offset_number_of_points.at(k)-1)];
+                        pps_offset_thresholds_low_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = pps_offset_thresholds_low_exceeded.at(k)[(*pps_offset_number_of_points.at(k)-1)];
+                    }
+                    else
+                    {
+                        pps_offsets.at(k)[*pps_offset_number_of_points.at(k)] = 0;
+                        pps_offset_thresholds_high_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = 0;
+                        pps_offset_thresholds_low_exceeded.at(k)[*pps_offset_number_of_points.at(k)] = 0;
+                    }
+                    if (*pps_offset_number_of_points.at(k) < Upa_MaxSamples)
+                    {
+                        *pps_offset_number_of_points.at(k) = *pps_offset_number_of_points.at(k) + 1;
+                    }
+                }
+            }
+            
+            // shift
+            if (pps_timestamp_number_of_points < Upa_MaxSamples)
+            {
+                pps_timestamps[pps_timestamp_number_of_points] = QDateTime::currentDateTime();
+                pps_timestamp_number_of_points = pps_timestamp_number_of_points + 1;
+            }
+            else
+            {
+                for (int i = 1; i <= (Upa_MaxSamples-1); i++)
+                {
+                   pps_timestamps[i-1] = pps_timestamps[i];
+                }
+            }
+
+            while (pps_timestamp_number_of_points < temp_number_of_points)
+            {
+                if (pps_timestamp_number_of_points > 0)
+                {
+                    pps_timestamps[pps_timestamp_number_of_points] = pps_timestamps[(pps_timestamp_number_of_points-1)];
+                }
+                else
+                {
+                    pps_timestamps[pps_timestamp_number_of_points] = QDateTime::currentDateTime();
+                }
+                if (pps_timestamp_number_of_points < Upa_MaxSamples)
+                {
+                    pps_timestamp_number_of_points = pps_timestamp_number_of_points + 1;
+                }
+            }
+
+            for (temp_index = 0; temp_index < temp_number_of_points; temp_index++)
+            {
+                temp_timestamp = pps_timestamps[temp_index].toString("dd-MM-yyyy hh:mm:ss"); // calculate back
+                temp_stream << temp_timestamp;
+
+                for (int k = 0; k < upa->ts_core_config.size(); k++)
+                {
+                    if (temp_index < *pps_offset_number_of_points.at(k))
+                    {
+                        if (*(pps_offset_active.at(k)) == 1)
+                        {
+                            temp_stream << ";" << QString::number(pps_offsets.at(k)[temp_index]);
+                        }
+                        else
+                        {
+                            temp_stream << ";" << "-";
+                        }
+                    }
+                    else
+                    {
+                        temp_stream << ";" << "-";
+                    }
+                }
+                    
+                for (int k = 0; k < upa->ts_core_config.size(); k++)
+                {
+                    if (temp_index < *pps_offset_number_of_points.at(k))
+                    {
+                        if ((*(pps_offset_active.at(k)) == 1) && (*(pps_offset_thresholds.at(k)) != 0))
+                        {
+                            temp_stream << ";" << QString::number(pps_offset_thresholds_high_exceeded.at(k)[temp_index]);
+                            temp_stream << ";" << QString::number(pps_offset_thresholds_low_exceeded.at(k)[temp_index]);
+                        }
+                        else
+                        {
+                            temp_stream << ";" << "-";
+                            temp_stream << ";" << "-";
+                        }
+                    }
+                    else
+                    {
+                        temp_stream << ";" << "-";
+                        temp_stream << ";" << "-";
+                    }
+                }
+                temp_stream << "\n";
+            }
+            
+            pps_values_file.close();
+
+        }
+        else
+        {
+            pps_values_file.setFileName("");
+            cout << "ERROR: " << "could not open values file" << endl;
+        }
+    }
+    else
+    {
+        cout << "ERROR: " << "empty values file name" << endl;
     }
 }
 
