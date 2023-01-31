@@ -1,7 +1,7 @@
 #ifndef UPA_PPSCONFIGSCREEN_H
 #define UPA_PPSCONFIGSCREEN_H
 
-#include <QWidget>
+#include <QDialog>
 #include <ui_Upa_PpsTab.h>
 
 class Upa_PpsTab;
@@ -10,7 +10,7 @@ namespace Ui {
 class Upa_PpsConfigScreen;
 }
 
-class Upa_PpsConfigScreen : public QWidget
+class Upa_PpsConfigScreen : public QDialog
 {
     Q_OBJECT
 private:

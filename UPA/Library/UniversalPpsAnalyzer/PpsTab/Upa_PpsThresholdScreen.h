@@ -1,7 +1,7 @@
 #ifndef UPA_PPSTHRESHOLDSCREEN_H
 #define UPA_PPSTHRESHOLDSCREEN_H
 
-#include <QWidget>
+#include <QDialog>
 #include <ui_Upa_PpsTab.h>
 
 class Upa_PpsTab;
@@ -10,7 +10,7 @@ namespace Ui {
 class Upa_PpsThresholdScreen;
 }
 
-class Upa_PpsThresholdScreen : public QWidget
+class Upa_PpsThresholdScreen : public QDialog
 {
     Q_OBJECT
 private:

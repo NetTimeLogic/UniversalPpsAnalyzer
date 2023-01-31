@@ -3,7 +3,7 @@
 //
 // Author:      Sven Meier, NetTimeLogic GmbH
 //
-// License:     Copyright (c) 2017, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
+// License:     Copyright (c) 2022, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
 //              All rights reserved.
 //
 //              THIS PROGRAM IS FREE SOFTWARE: YOU CAN REDISTRIBUTE IT AND/OR MODIFY
@@ -28,7 +28,7 @@
 #include <string>
 #include <QMutex>
 
-#include <QPlainTextEdit.h>
+#include <QPlainTextEdit>
 
 class Upa_DebugStream : public std::basic_streambuf<char>
 {

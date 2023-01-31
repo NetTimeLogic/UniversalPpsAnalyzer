@@ -3,7 +3,7 @@
 //
 // Author:      Sven Meier, NetTimeLogic GmbH
 //
-// License:     Copyright (c) 2017, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
+// License:     Copyright (c) 2022, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
 //              All rights reserved.
 //
 //              THIS PROGRAM IS FREE SOFTWARE: YOU CAN REDISTRIBUTE IT AND/OR MODIFY
@@ -48,6 +48,7 @@ class Upa_AdvancedTab;
 class Upa_PpsTab;
 class Upa_HelpMenuAbout;
 
+
 #define Upa_Version_Nr               "2.1.00"
 
 #define Upa_MainHeight               820
@@ -58,7 +59,7 @@ class Upa_UniversalPpsAnalyzer : public QMainWindow, public Ui::Upa_UniversalPps
     Q_OBJECT
 
     public:
-        Upa_UniversalPpsAnalyzer(QMainWindow *parent = 0);
+        Upa_UniversalPpsAnalyzer(QMainWindow *parent = 0, int open_gl = 1);
         ~Upa_UniversalPpsAnalyzer();
 
         int upa_resize(int height, int width);
@@ -67,6 +68,9 @@ class Upa_UniversalPpsAnalyzer : public QMainWindow, public Ui::Upa_UniversalPps
         QList<Upa_CoreConfig> ts_core_config;
         QList<Upa_CoreConfig> io_core_config;
         QList<Upa_CoreConfig> i2c_core_config;
+
+        // If OpenGl shall be used
+        int use_open_gl;
 
         // Config tab
         Upa_ConfigTab* config_tab;

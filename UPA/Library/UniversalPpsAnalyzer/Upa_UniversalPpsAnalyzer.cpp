@@ -3,7 +3,7 @@
 //
 // Author:      Sven Meier, NetTimeLogic GmbH
 //
-// License:     Copyright (c) 2017, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
+// License:     Copyright (c) 2022, NetTimeLogic GmbH, Switzerland, Sven Meier <contact@nettimelogic.com>
 //              All rights reserved.
 //
 //              THIS PROGRAM IS FREE SOFTWARE: YOU CAN REDISTRIBUTE IT AND/OR MODIFY
@@ -27,12 +27,15 @@ using namespace std;
 #include <streambuf>
 #include <string>
 
-Upa_UniversalPpsAnalyzer::Upa_UniversalPpsAnalyzer(QMainWindow *parent) : QMainWindow(parent)
+Upa_UniversalPpsAnalyzer::Upa_UniversalPpsAnalyzer(QMainWindow *parent, int open_gl) : QMainWindow(parent)
 {
     QScreen *screen = QGuiApplication::primaryScreen();
     QRect  screenGeometry = screen->geometry();
     int height = screenGeometry.height();
     int width = screenGeometry.width();
+
+    // set this first
+    use_open_gl = open_gl;
 
     cout << "INFO: " << "Screen size: " << width << "x" << height << endl;
 
