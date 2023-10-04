@@ -1,4 +1,5 @@
 @echo off
+
 SET script_dir=%~dp0
 SET tools_dir=%script_dir%
 
