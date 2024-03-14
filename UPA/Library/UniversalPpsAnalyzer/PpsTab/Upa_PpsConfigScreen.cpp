@@ -1,6 +1,7 @@
 #include <Upa_PpsConfigScreen.h>
 #include <Upa_PpsTab.h>
 #include <ui_Upa_PpsConfigScreen.h>
+#include <QRegularExpression>
 
 Upa_PpsConfigScreen::Upa_PpsConfigScreen(Upa_PpsTab *parent) : QDialog()
 {
@@ -10,13 +11,14 @@ Upa_PpsConfigScreen::Upa_PpsConfigScreen(Upa_PpsTab *parent) : QDialog()
     ui = new Ui::Upa_PpsConfigScreen();
     ui->setupUi(this);
 
-    QPalette pal;
-    pal.setColor(QPalette::Background, Qt::white);
-    setPalette(pal);
+    //QPalette pal;
+    //pal.setColor(QPalette::Background, Qt::white);
+    //setPalette(pal);
 
     connect(ui->PpsDoneButton, SIGNAL(clicked()), this, SLOT(pps_done_button_clicked()));
     connect(ui->PpsChangeDelaysAndNamesButton, SIGNAL(clicked()), this, SLOT(pps_change_delays_and_names_button_clicked()));
     connect(ui->PpsAnalyzerComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(pps_analyzer_changed(int)));
+    connect(ui->PpsAnalyzerRefSelectComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(pps_reference_changed(int)));
     connect(ui->PpsGraph1CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph2CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph3CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
@@ -149,6 +151,8 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
     {
         if (ui->PpsAnalyzerComboBox->currentText() == pps_tab->pps_boards.at(i)->com_port)
         {
+            ui->PpsAnalyzerRefSelectComboBox->setCurrentIndex(pps_tab->pps_boards.at(i)->pps_ref_channel);
+
             ui->PpsDelayPpsRefValue->setEnabled(true);
             ui->PpsDelayPps1Value->setEnabled(true);
             ui->PpsDelayPps2Value->setEnabled(true);
@@ -225,6 +229,17 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
             {
                 ui->PpsGraph8CheckBox->setChecked(true);
             }
+        }
+    }
+}
+
+void Upa_PpsConfigScreen::pps_reference_changed(int index)
+{
+    for (int i = 0; i < pps_tab->pps_boards.size(); i++)
+    {
+        if (ui->PpsAnalyzerComboBox->currentText() == pps_tab->pps_boards.at(i)->com_port)
+        {
+            pps_tab->pps_boards.at(i)->pps_ref_channel = ui->PpsAnalyzerRefSelectComboBox->currentIndex();
         }
     }
 }
@@ -317,7 +332,7 @@ void Upa_PpsConfigScreen::pps_load_config(void)
         QByteArray temp_line = temp_file.readLine();
         QString temp_string = QString::fromUtf8(temp_line.data());
 
-        QRegExp sep("\\s+");
+        QRegularExpression sep("\\s+");
         for (int i = 0; i < pps_tab->pps_boards.size(); i++)
         {
             if (true == temp_string.startsWith(pps_tab->pps_boards.at(i)->com_port))
@@ -373,7 +388,7 @@ void Upa_PpsConfigScreen::pps_save_config(void)
     }
 
     QTextStream temp_stream(&temp_file);
-    temp_stream << temp_string << endl;
+    temp_stream << temp_string << "\n"; // endl;
 
     temp_file.close();
 }

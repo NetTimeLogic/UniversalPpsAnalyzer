@@ -9,8 +9,7 @@ QT       += serialport
 QT       += charts
 QT       += network
 QT       += widgets
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 6): QT += core5compat
 
 TARGET = UniversalPpsAnalyzer
 TEMPLATE = app

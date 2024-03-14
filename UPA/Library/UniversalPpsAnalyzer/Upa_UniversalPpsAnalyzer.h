@@ -41,7 +41,9 @@
 #include <Upa_PpsTab.h>
 #include <Upa_HelpMenuAbout.h>
 
-using namespace QtCharts;
+#if QT_MAJOR_VERSION < 6
+    using namespace QtCharts;
+#endif
 
 class Upa_ConfigTab;
 class Upa_AdvancedTab;
@@ -49,7 +51,7 @@ class Upa_PpsTab;
 class Upa_HelpMenuAbout;
 
 
-#define Upa_Version_Nr               "2.1.00"
+#define Upa_Version_Nr               "3.0.00"
 
 #define Upa_MainHeight               820
 #define Upa_MainWidth                1380

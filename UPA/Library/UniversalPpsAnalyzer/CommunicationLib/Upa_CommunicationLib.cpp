@@ -36,7 +36,11 @@ static QList<QUdpSocket*> eth_sockets;
 
 Upa_CommunicationLib::Upa_CommunicationLib()
 {
+#if QT_MAJOR_VERSION < 6
     com_lock = new QMutex(QMutex::Recursive);
+#else
+    com_lock = new QRecursiveMutex();
+#endif
     com_lock->lock();
     is_open = false;
     port_type = 0;
@@ -73,7 +77,7 @@ QList<QString> Upa_CommunicationLib::create_eth_ports (QList<QString> selected_e
         checksum = checksum ^ write_data[i];
     }
     write_data.append('*');
-    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     write_data.append(0x0D);
     write_data.append(0x0A);
 
@@ -260,7 +264,7 @@ int Upa_CommunicationLib::detect_baudrate(void)
         checksum = checksum ^ write_data[i];
     }
     write_data.append('*');
-    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     write_data.append(0x0D);
     write_data.append(0x0A);
 
@@ -458,7 +462,7 @@ int Upa_CommunicationLib::open_port(QString name)
         checksum = checksum ^ write_data[i];
     }
     write_data.append('*');
-    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     write_data.append(0x0D);
     write_data.append(0x0A);
 
@@ -660,7 +664,7 @@ int Upa_CommunicationLib::check_port()
         checksum = checksum ^ write_data[i];
     }
     write_data.append('*');
-    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     write_data.append(0x0D);
     write_data.append(0x0A);
 
@@ -886,16 +890,16 @@ int Upa_CommunicationLib::write_reg(const unsigned int addr, unsigned int& data)
     }
 
     write_data.append("$WC,");
-    write_data.append(QString("0x%1").arg(addr, 8, 16, QLatin1Char('0')));
+    write_data.append(QString("0x%1").arg(addr, 8, 16, QLatin1Char('0')).toUtf8());
     write_data.append(',');
-    write_data.append(QString("0x%1").arg(data, 8, 16, QLatin1Char('0')));
+    write_data.append(QString("0x%1").arg(data, 8, 16, QLatin1Char('0')).toUtf8());
     checksum = 0;
     for (int i = 1; i < write_data.size(); i++)
     {
         checksum = checksum ^ write_data[i];
     }
     write_data.append('*');
-    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     write_data.append(0x0D);
     write_data.append(0x0A);
 
@@ -1042,7 +1046,7 @@ int Upa_CommunicationLib::write_reg(const unsigned int addr, unsigned int& data)
     temp_data.append("$WR,0x");
     temp_string = QString("%1").arg(addr, 8, 16, QLatin1Char('0'));
     temp_string = temp_string.toUpper();
-    temp_data.append(temp_string);
+    temp_data.append(temp_string.toUtf8());
 
     if (false == read_data.startsWith(temp_data))
     {
@@ -1065,7 +1069,7 @@ int Upa_CommunicationLib::write_reg(const unsigned int addr, unsigned int& data)
     }
 
     temp_data.clear();
-    temp_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    temp_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     temp_data = temp_data.toUpper();
     temp_data.append(0x0D);
     temp_data.append(0x0A);
@@ -1100,14 +1104,14 @@ int Upa_CommunicationLib::read_reg(const unsigned int addr, unsigned int& data)
     }
 
     write_data.append("$RC,");
-    write_data.append(QString("0x%1").arg(addr, 8, 16, QLatin1Char('0')));
+    write_data.append(QString("0x%1").arg(addr, 8, 16, QLatin1Char('0')).toUtf8());
     checksum = 0;
     for (int i = 1; i < write_data.size(); i++)
     {
         checksum = checksum ^ write_data[i];
     }
     write_data.append('*');
-    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    write_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     write_data.append(0x0D);
     write_data.append(0x0A);
 
@@ -1254,7 +1258,7 @@ int Upa_CommunicationLib::read_reg(const unsigned int addr, unsigned int& data)
     temp_data.append("$RR,0x");
     temp_string = QString("%1").arg(addr, 8, 16, QLatin1Char('0'));
     temp_string = temp_string.toUpper();
-    temp_data.append(temp_string);
+    temp_data.append(temp_string.toUtf8());
     if (false == read_data.startsWith(temp_data))
     {
         cout << "ERROR: " << "no correct response received" << endl;
@@ -1277,7 +1281,7 @@ int Upa_CommunicationLib::read_reg(const unsigned int addr, unsigned int& data)
     }
 
     temp_data.clear();
-    temp_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')));
+    temp_data.append(QString("%1").arg(checksum, 2, 16, QLatin1Char('0')).toUtf8());
     temp_data = temp_data.toUpper();
     temp_data.append(0x0D);
     temp_data.append(0x0A);

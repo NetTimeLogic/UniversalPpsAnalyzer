@@ -9,9 +9,9 @@ Upa_PpsThresholdScreen::Upa_PpsThresholdScreen(Upa_PpsTab *parent) : QDialog()
     ui = new Ui::Upa_PpsThresholdScreen();
     ui->setupUi(this);
 
-    QPalette pal;
-    pal.setColor(QPalette::Background, Qt::white);
-    setPalette(pal);
+    //QPalette pal;
+    //pal.setColor(QPalette::Background, Qt::white);
+    //setPalette(pal);
 
     connect(ui->PpsDoneButton, SIGNAL(clicked()), this, SLOT(pps_done_button_clicked()));
     connect(ui->PpsChangeThresholdsButton, SIGNAL(clicked()), this, SLOT(pps_change_thresholds_button_clicked()));
@@ -310,7 +310,7 @@ void Upa_PpsThresholdScreen::pps_load_config(void)
         QByteArray temp_line = temp_file.readLine();
         QString temp_string = QString::fromUtf8(temp_line.data());
 
-        QRegExp sep("\\s+");
+        QRegularExpression sep("\\s+");
         for (int i = 0; i < pps_tab->pps_boards.size(); i++)
         {
             if (true == temp_string.startsWith(pps_tab->pps_boards.at(i)->com_port))
@@ -359,7 +359,7 @@ void Upa_PpsThresholdScreen::pps_save_config(void)
     }
 
     QTextStream temp_stream(&temp_file);
-    temp_stream << temp_string << endl;
+    temp_stream << temp_string << "\n"; //endl;
 
     temp_file.close();
 }

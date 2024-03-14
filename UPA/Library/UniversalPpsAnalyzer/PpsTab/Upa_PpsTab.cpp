@@ -217,6 +217,7 @@ int Upa_PpsGui::pps_enable(void)
 Upa_PpsBoard::Upa_PpsBoard()
 {
     com_port.clear();
+    pps_ref_channel = 0; // default we take the reference
     for (int i = 0; i < Upa_PpsPerBoard; i++)
     {
         pps_ts[i].pps_board = this;
@@ -504,7 +505,7 @@ Upa_PpsTab::Upa_PpsTab(Upa_UniversalPpsAnalyzer *parent) : QWidget()
     pps_offset_chart_view = new QChartView(pps_offset_chart);
     pps_offset_chart_view->setRenderHint(QPainter::Antialiasing);
 
-    ui->PpsOffsetChartLayout->addWidget(pps_offset_chart_view, 0, 0);
+    ui->PpsOffsetChartLayout->addWidget(pps_offset_chart_view, 0);
 
     // disable all of the parts (set to a defined value)
     for (int i = 0; i < pps_boards.size(); i++)
@@ -982,6 +983,7 @@ void Upa_PpsTab::pps_ctrl_timer_run(void)
 {
     QDateTime temp_time;
     int temp_offset_ref;
+    int temp_offset_ref_channel;
     int temp_offset;
     int temp_active;
     int temp_threshold_high_exceeded;
@@ -1027,7 +1029,7 @@ void Upa_PpsTab::pps_ctrl_timer_run(void)
 
     // calculate and push things
     for (int i = 0; i < pps_boards.size(); i++)
-    {
+    {   
         if (pps_boards.at(i)->pps_ts[0].pps_sample.pps_active != 0)
         {
             temp_offset_ref = pps_boards.at(i)->pps_ts[0].pps_sample.pps_offset;
@@ -1036,6 +1038,22 @@ void Upa_PpsTab::pps_ctrl_timer_run(void)
         else
         {
             temp_offset_ref = 0;
+        }
+        if (pps_boards.at(i)->pps_ref_channel != 0) // if we manualy selected another node as the reference
+        { 
+            if (pps_boards.at(i)->pps_ts[pps_boards.at(i)->pps_ref_channel].pps_sample.pps_active != 0)
+            {
+                temp_offset_ref_channel = pps_boards.at(i)->pps_ts[pps_boards.at(i)->pps_ref_channel].pps_sample.pps_offset;
+                temp_offset_ref_channel += pps_boards.at(i)->pps_ctrl[pps_boards.at(i)->pps_ref_channel].pps_delay;
+            }
+            else
+            {
+                temp_offset_ref_channel = 0;
+            }
+        }
+        else
+        {
+            temp_offset_ref_channel = 0;
         }
         for (int j = 0; j < Upa_PpsPerBoard; j++)
         {
@@ -1055,6 +1073,7 @@ void Upa_PpsTab::pps_ctrl_timer_run(void)
                     {
                         temp_offset -= temp_offset_ref;
                     }
+                    temp_offset -= temp_offset_ref_channel;
                 }
 
                 if (pps_boards.at(i)->pps_ctrl[j].pps_threshold_enabled != 0)
@@ -1489,7 +1508,7 @@ void Upa_PpsTab::pps_gui_timer_run(void)
         for (int j = 0; j < Upa_PpsPerBoard; j++)
         {
             pps_boards.at(i)->pps_gui[j].pps_offset_series->setName(pps_boards.at(i)->pps_gui[j].pps_name);
-            if (pps_boards.at(i)->pps_gui[j].pps_name != 0)
+            if (pps_boards.at(i)->pps_gui[j].pps_show != 0)
             {
                 pps_boards.at(i)->pps_gui[j].pps_offset_series->show();
             }

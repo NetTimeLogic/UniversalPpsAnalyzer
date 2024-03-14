@@ -9,9 +9,9 @@ Upa_HelpMenuAbout::Upa_HelpMenuAbout() : QWidget()
     ui = new Ui::Upa_HelpMenuAbout();
     ui->setupUi(this);
 
-    QPalette pal;
-    pal.setColor(QPalette::Background, Qt::white);
-    setPalette(pal);
+    //QPalette pal;
+    //pal.setColor(QPalette::Background, Qt::white);
+    //setPalette(pal);
 
     temp_version.append("Version: ");
     temp_version.append(Upa_Version_Nr);

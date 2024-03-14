@@ -27,7 +27,11 @@
 #include <QSerialPort>
 #include <QNetworkInterface>
 #include <QUdpSocket>
-#include <QMutex>
+#if QT_MAJOR_VERSION < 6
+    #include <QMutex>
+#else
+    #include <QRecursiveMutex>
+#endif
 #include <QListWidgetItem>
 
 #include <string>
@@ -43,7 +47,11 @@ class Upa_CommunicationLib
         QSerialPort com_port;
         QUdpSocket* eth_port;
         QString port_name;
+#if QT_MAJOR_VERSION < 6
         QMutex* com_lock;
+#else
+        QRecursiveMutex* com_lock;
+#endif
         int detect_baudrate(void);
 
     public:

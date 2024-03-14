@@ -1,30 +1,13 @@
-#-----------------------------------------------------------------------------
-# 
-#  Copyright (c) 2013, Thierry Lelegard
-#  All rights reserved.
-# 
-#  Redistribution and use in source and binary forms, with or without
-#  modification, are permitted provided that the following conditions are met:
-# 
-#  1. Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer. 
-#  2. Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in the
-#     documentation and/or other materials provided with the distribution. 
-# 
-#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-#  THE POSSIBILITY OF SUCH DAMAGE.
-# 
-#-----------------------------------------------------------------------------
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+# Tested with QT 5.15.2 on Windows 10
+# https://mrfaptastic.github.io
 
 <#
  .SYNOPSIS
@@ -78,7 +61,7 @@ param(
     $QtSrcUrl = "http://download.qt.io/official_releases/qt/5.11/5.11.2/single/qt-everywhere-src-5.11.2.zip",
     $QtStaticDir = "C:\Qt\Static",
     $QtVersion = "5.11",
-    $MingwDir = "",
+    $MingwDir = "C:\Qt\Tools\mingw530_32",
     [switch]$NoPause = $false
 )
 
@@ -164,7 +147,10 @@ DEFINES += QT_STATIC_BUILD
     # Configure, compile and install Qt.
     # WARNING NOTE: -qt-sql-sqlite had to be changed to -sql-sqlite for QT 5.11    
     Push-Location $QtSrcDir
-    cmd /c "configure.bat -static -debug-and-release -platform win32-g++ -prefix $QtDir `        -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl `        -opensource -confirm-license `        -make libs -nomake tools -nomake examples -nomake tests"
+    cmd /c "configure.bat -static -debug-and-release -platform win32-g++ -prefix $QtDir `
+        -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl `
+        -opensource -confirm-license `
+        -make libs -nomake tools -nomake examples -nomake tests"
     mingw32-make -k -j32
     mingw32-make -k install
     Pop-Location

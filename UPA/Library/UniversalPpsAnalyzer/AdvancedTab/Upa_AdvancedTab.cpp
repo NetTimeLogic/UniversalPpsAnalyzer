@@ -111,7 +111,7 @@ void Upa_AdvancedTab::advanced_save_log_button_clicked(void)
     QTextStream temp_stream(&temp_file);
     QString temp_string = ui->AdvancedDebugConsole->toPlainText();
 
-    temp_stream << temp_string << endl;
+    temp_stream << temp_string << "\n"; //endl;
 
     temp_file.close();
 

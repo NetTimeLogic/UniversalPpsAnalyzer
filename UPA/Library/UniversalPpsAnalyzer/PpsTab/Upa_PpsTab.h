@@ -67,7 +67,9 @@ class Upa_PpsConfigScreen;
 class Upa_PpsThresholdScreen;
 }
 
-using namespace QtCharts;
+#if QT_MAJOR_VERSION < 6
+    using namespace QtCharts;
+#endif
 
 class Upa_PpsTs;
 class Upa_PpsCtrl;
@@ -167,6 +169,7 @@ class Upa_PpsBoard
 {
 public:
     QString com_port;
+    unsigned int pps_ref_channel;
     Upa_PpsTs pps_ts[Upa_PpsPerBoard];
     Upa_PpsCtrl pps_ctrl[Upa_PpsPerBoard];
     QMutex mutex_ctrl;
