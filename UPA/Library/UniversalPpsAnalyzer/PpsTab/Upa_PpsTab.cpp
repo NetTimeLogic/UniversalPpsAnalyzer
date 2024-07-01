@@ -186,6 +186,9 @@ Upa_PpsGui::Upa_PpsGui()
     pps_index = 0;
     pps_name.clear();
     pps_show = 0;
+    pps_max_diff = 0;
+    pps_min_diff = 0;
+    pps_avg_diff = 0;
     pps_samples.clear();
     pps_offset_series = NULL;
 }
@@ -195,12 +198,20 @@ Upa_PpsGui::~Upa_PpsGui()
     pps_board = NULL;
     pps_index = 0;
     pps_name.clear();
+    pps_max_diff = 0;
+    pps_min_diff = 0;
+    pps_avg_diff = 0.0;
+    pps_std_deviation = 0.0;
     pps_samples.clear();
     pps_offset_series = NULL;
 }
 
 int Upa_PpsGui::pps_disable(void)
 {
+    pps_max_diff = 0;
+    pps_min_diff = 0;
+    pps_avg_diff = 0.0;
+    pps_std_deviation = 0.0;
     pps_samples.clear();
     pps_offset_series->clear();
     return 0;
@@ -208,6 +219,10 @@ int Upa_PpsGui::pps_disable(void)
 
 int Upa_PpsGui::pps_enable(void)
 {
+    pps_max_diff = 0;
+    pps_min_diff = 0;
+    pps_avg_diff = 0.0;
+    pps_std_deviation = 0.0;
     pps_samples.clear();
     pps_offset_series->clear();
     return 0;
@@ -585,8 +600,9 @@ int Upa_PpsTab::pps_resize(int height, int width)
     width_delta = (width-Upa_MainWidth);
 
     ui->PpsOffsetChartValue->setFixedHeight(700+height_delta);
-    ui->PpsOffsetChartValue->setFixedWidth(1340+width_delta);
-    ui->PpsOffsetChartLabel->setFixedWidth(1340+width_delta);
+    ui->PpsOffsetChartValue->setFixedWidth(1150+width_delta);
+    ui->PpsOffsetChartLabel->setFixedWidth(1150+width_delta);
+    ui->PpsStatisticsValue->setFixedHeight(680+height_delta);
 
     updateGeometry();
 
@@ -1371,7 +1387,10 @@ void Upa_PpsTab::pps_gui_timer_run(void)
 
             if (j != 0)
             {
-                if (pps_boards.at(i)->pps_gui[j].pps_samples.last().pps_active == 0)
+                if (
+                    pps_boards.at(i)->pps_gui[j].pps_samples.isEmpty() || 
+                    pps_boards.at(i)->pps_gui[j].pps_samples.last().pps_active == 0
+                )
                 {
                     temp_color.setRgb(128, 128, 128);
                     pps_boards.at(i)->pps_gui[j].pps_offset_series->setColor(temp_color);
@@ -1439,6 +1458,47 @@ void Upa_PpsTab::pps_gui_timer_run(void)
         i->attachAxis(pps_offset_chart_x_axis);
     }
 
+
+    // statistics
+    for (int i = 0; i < pps_boards.size(); i++)
+    {
+        for (int j = 0; j < Upa_PpsPerBoard; j++)
+        {
+            if (pps_boards.at(i)->pps_gui[j].pps_show != 0)
+            {
+                pps_boards.at(i)->pps_gui[j].pps_min_diff = 1000000000;
+                pps_boards.at(i)->pps_gui[j].pps_max_diff = -1000000000;
+                pps_boards.at(i)->pps_gui[j].pps_avg_diff = 0.0;
+                pps_boards.at(i)->pps_gui[j].pps_std_deviation = 0.0;
+
+                for (int k = 0; k < pps_boards.at(i)->pps_gui[j].pps_offset_series->count(); k++)
+                {
+                    QPointF temp_point = pps_boards.at(i)->pps_gui[j].pps_offset_series->at(k);
+                    if (pps_boards.at(i)->pps_gui[j].pps_min_diff > temp_point.y())
+                    {
+                        pps_boards.at(i)->pps_gui[j].pps_min_diff = temp_point.y();
+                    }
+                    if (pps_boards.at(i)->pps_gui[j].pps_max_diff < temp_point.y())
+                    {
+                        pps_boards.at(i)->pps_gui[j].pps_max_diff = temp_point.y();
+                    }
+                    pps_boards.at(i)->pps_gui[j].pps_avg_diff += temp_point.y();
+                }
+
+                pps_boards.at(i)->pps_gui[j].pps_avg_diff /= pps_boards.at(i)->pps_gui[j].pps_offset_series->count();
+
+                for (int k = 0; k < pps_boards.at(i)->pps_gui[j].pps_offset_series->count(); k++)
+                {
+                    QPointF temp_point = pps_boards.at(i)->pps_gui[j].pps_offset_series->at(k);
+                    pps_boards.at(i)->pps_gui[j].pps_std_deviation += pow((((double)temp_point.y()) - pps_boards.at(i)->pps_gui[j].pps_avg_diff), 2);
+                }
+                pps_boards.at(i)->pps_gui[j].pps_std_deviation /= (pps_boards.at(i)->pps_gui[j].pps_offset_series->count() - 1);
+                pps_boards.at(i)->pps_gui[j].pps_std_deviation = sqrt(pps_boards.at(i)->pps_gui[j].pps_std_deviation);
+            }
+        }
+    }
+
+    // min and max for display
     if (ui->PpsFixedScaleCheckBox->isChecked() == false)
     {
         temp_min = 0;
@@ -1450,17 +1510,13 @@ void Upa_PpsTab::pps_gui_timer_run(void)
             {
                 if (pps_boards.at(i)->pps_gui[j].pps_show != 0)
                 {
-                    for (int k = 0; k < pps_boards.at(i)->pps_gui[j].pps_offset_series->count(); k++)
+                    if (temp_min > pps_boards.at(i)->pps_gui[j].pps_min_diff)
                     {
-                        QPointF temp_point = pps_boards.at(i)->pps_gui[j].pps_offset_series->at(k);
-                        if (temp_min > temp_point.y())
-                        {
-                            temp_min = temp_point.y();
-                        }
-                        if (temp_max < temp_point.y())
-                        {
-                            temp_max = temp_point.y();
-                        }
+                        temp_min = pps_boards.at(i)->pps_gui[j].pps_min_diff;
+                    }
+                    if (temp_max < pps_boards.at(i)->pps_gui[j].pps_max_diff)
+                    {
+                        temp_max = pps_boards.at(i)->pps_gui[j].pps_max_diff;
                     }
                 }
             }
@@ -1503,13 +1559,33 @@ void Upa_PpsTab::pps_gui_timer_run(void)
         i->attachAxis(pps_offset_chart_y_axis);
     }
 
+    ui->PpsStatisticsValue->clear();
     for (int i = 0; i < pps_boards.size(); i++)
     {
         for (int j = 0; j < Upa_PpsPerBoard; j++)
         {
+
             pps_boards.at(i)->pps_gui[j].pps_offset_series->setName(pps_boards.at(i)->pps_gui[j].pps_name);
             if (pps_boards.at(i)->pps_gui[j].pps_show != 0)
             {
+                QPointF temp_point = pps_boards.at(i)->pps_gui[j].pps_offset_series->at(pps_boards.at(i)->pps_gui[j].pps_offset_series->count()-1);
+                QString temp_string;
+                temp_string.append(pps_boards.at(i)->pps_gui[j].pps_name);
+                temp_string.append(":\n");
+                temp_string.append("cur: ");
+                temp_string.append(QString::number(temp_point.y()));
+                temp_string.append("ns, avg: ");
+                temp_string.append(QString::number(pps_boards.at(i)->pps_gui[j].pps_avg_diff, 'f', 3));
+                temp_string.append("ns\n1σ: ");
+                temp_string.append(QString::number(pps_boards.at(i)->pps_gui[j].pps_std_deviation, 'f', 3));
+                temp_string.append("ns, min/max: ");
+                temp_string.append(QString::number(pps_boards.at(i)->pps_gui[j].pps_min_diff));
+                temp_string.append("/");
+                temp_string.append(QString::number(pps_boards.at(i)->pps_gui[j].pps_max_diff));
+                temp_string.append("ns\n");
+                cout << "VERBOSE: " << pps_boards.at(i)->pps_gui[j].pps_name.toLatin1().constData() << " accuracy is: " << pps_boards.at(i)->pps_gui[j].pps_avg_diff << "ns +/-" << pps_boards.at(i)->pps_gui[j].pps_std_deviation << "ns" << endl ;
+
+                ui->PpsStatisticsValue->addItem(temp_string);
                 pps_boards.at(i)->pps_gui[j].pps_offset_series->show();
             }
             else

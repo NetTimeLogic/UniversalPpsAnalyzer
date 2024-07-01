@@ -156,6 +156,10 @@ public:
     unsigned int pps_index;
     QString pps_name;
     int pps_show;
+    int pps_max_diff;
+    int pps_min_diff;
+    double pps_avg_diff;
+    double pps_std_deviation;
     QList<Upa_PpsGuiSample> pps_samples;
     QLineSeries* pps_offset_series;
 
