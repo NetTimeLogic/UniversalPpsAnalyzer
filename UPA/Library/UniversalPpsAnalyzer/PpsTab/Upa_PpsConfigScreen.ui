@@ -32,7 +32,7 @@
     </rect>
    </property>
    <property name="title">
-    <string>Delays and Names</string>
+    <string>Configuration</string>
    </property>
    <widget class="QLineEdit" name="PpsDelayPpsRefValue">
     <property name="enabled">
@@ -769,6 +769,83 @@
     </property>
     <property name="text">
      <string>Manual Select Reference</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="PpsAnalyzerVersionValue">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>30</y>
+      <width>75</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>NA</string>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="PpsAnalyzerVersionLabel">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>30</y>
+      <width>80</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Version</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="PpsChangeReferenceButton">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>350</y>
+      <width>151</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Change Reference</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="PpsGraphRefCheckBox">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>70</y>
+      <width>101</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Show PPS REF</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="PpsCalculateVarianceCheckBox">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>390</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Calculate Allan Deviation</string>
+    </property>
+    <property name="checked">
+     <bool>false</bool>
     </property>
    </widget>
   </widget>

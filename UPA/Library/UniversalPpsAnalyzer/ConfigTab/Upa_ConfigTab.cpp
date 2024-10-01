@@ -460,6 +460,7 @@ void Upa_ConfigTab::config_connect_button_clicked(void)
         QSize new_size = upa->Upa_MainWindow->size();
         upa->pps_tab->pps_resize((new_size.height()+21), new_size.width());
         upa->pps_tab->pps_enable();
+        upa->Upa_MainTab->setCurrentIndex(upa->Upa_MainTab->indexOf(upa->pps_tab)); // directly go to PPS
 
         config_timer->start(2000);
         ui->ConfigConnectButton->setText("Disconnect");

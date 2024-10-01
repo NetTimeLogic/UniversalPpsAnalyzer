@@ -18,7 +18,8 @@ Upa_PpsConfigScreen::Upa_PpsConfigScreen(Upa_PpsTab *parent) : QDialog()
     connect(ui->PpsDoneButton, SIGNAL(clicked()), this, SLOT(pps_done_button_clicked()));
     connect(ui->PpsChangeDelaysAndNamesButton, SIGNAL(clicked()), this, SLOT(pps_change_delays_and_names_button_clicked()));
     connect(ui->PpsAnalyzerComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(pps_analyzer_changed(int)));
-    connect(ui->PpsAnalyzerRefSelectComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(pps_reference_changed(int)));
+    connect(ui->PpsChangeReferenceButton, SIGNAL(clicked()), this, SLOT(pps_change_reference_button_clicked()));
+    connect(ui->PpsGraphRefCheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph1CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph2CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph3CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
@@ -27,6 +28,9 @@ Upa_PpsConfigScreen::Upa_PpsConfigScreen(Upa_PpsTab *parent) : QDialog()
     connect(ui->PpsGraph6CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph7CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
     connect(ui->PpsGraph8CheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_graph_changed()));
+    connect(ui->PpsCalculateVarianceCheckBox, SIGNAL(clicked(bool)), this, SLOT(pps_calc_variance_changed()));
+
+    pps_calc_variance_changed();
 
     // add the boards found to the drop down
     for (int i = 0; i < pps_tab->pps_boards.size(); i++)
@@ -89,6 +93,8 @@ void Upa_PpsConfigScreen::pps_change_names(void)
             pps_tab->pps_boards.at(i)->pps_gui[6].pps_name.clear();
             pps_tab->pps_boards.at(i)->pps_gui[7].pps_name.clear();
             pps_tab->pps_boards.at(i)->pps_gui[8].pps_name.clear();
+            pps_tab->pps_boards.at(i)->pps_gui[8].pps_name.clear();
+
             pps_tab->pps_boards.at(i)->pps_gui[1].pps_name.append(ui->PpsNamePps1Value->text());
             pps_tab->pps_boards.at(i)->pps_gui[2].pps_name.append(ui->PpsNamePps2Value->text());
             pps_tab->pps_boards.at(i)->pps_gui[3].pps_name.append(ui->PpsNamePps3Value->text());
@@ -97,6 +103,21 @@ void Upa_PpsConfigScreen::pps_change_names(void)
             pps_tab->pps_boards.at(i)->pps_gui[6].pps_name.append(ui->PpsNamePps6Value->text());
             pps_tab->pps_boards.at(i)->pps_gui[7].pps_name.append(ui->PpsNamePps7Value->text());
             pps_tab->pps_boards.at(i)->pps_gui[8].pps_name.append(ui->PpsNamePps8Value->text());
+
+
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.clear();
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->com_port);
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append("_REF (");
+            if (pps_tab->pps_boards.at(i)->pps_ref_channel == 0)
+            {
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->com_port);
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append("_PPS_REF");
+            }
+            else
+            {
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->pps_gui[pps_tab->pps_boards.at(i)->pps_ref_channel].pps_name);
+            }
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(")");
         }
     }
 }
@@ -108,8 +129,85 @@ void Upa_PpsConfigScreen::pps_change_delays_and_names_button_clicked(void)
     pps_save_config();
 }
 
+void Upa_PpsConfigScreen::pps_change_reference_button_clicked(void)
+{
+    unsigned int temp_data = 0;
+    unsigned int temp_addr = 0;
+
+    QMessageBox message_shield;
+    QAbstractButton *next_button;
+    QAbstractButton *cancel_button;
+
+    message_shield.setWindowTitle(tr("Change Reference?"));
+    message_shield.setInformativeText("This will have an effect on all Universal PPS Analyzer applications connected to this PPS Analyzer \n");
+    next_button = message_shield.addButton(tr("Ok"), QMessageBox::YesRole);
+    cancel_button = message_shield.addButton(tr("Abort"), QMessageBox::NoRole);
+    message_shield.setIcon(QMessageBox::Question);
+    message_shield.exec();
+
+    for (int i = 0; i < pps_tab->pps_boards.size(); i++)
+    {
+        if (ui->PpsAnalyzerComboBox->currentText() == pps_tab->pps_boards.at(i)->com_port)
+        {
+            if(message_shield.clickedButton() == cancel_button)
+            {
+                // keep
+            }
+            else
+            {
+                for (int j = 0; j < pps_tab->upa->io_core_config.size(); j++)
+                {
+                    if (pps_tab->pps_boards.at(i)->com_port == pps_tab->upa->io_core_config.at(j).com_port)
+                    {   // lock
+                        pps_tab->pps_boards.at(i)->mutex_ctrl_threshold.lock();
+
+                        temp_addr = pps_tab->upa->io_core_config.at(j).address_range_low;
+                        if (0 == pps_tab->upa->io_core_config.at(j).com_lib->read_reg(temp_addr + Upa_IoConf_OutputDataReg, temp_data))
+                        {
+                            temp_data &= 0xFFFFFF0F;
+                            temp_data |= ui->PpsAnalyzerRefSelectComboBox->currentIndex() << 4;
+
+                            if (0 == pps_tab->upa->io_core_config.at(j).com_lib->write_reg(temp_addr + Upa_IoConf_OutputDataReg, temp_data))
+                            {
+                                pps_tab->pps_boards.at(i)->pps_ref_channel = ui->PpsAnalyzerRefSelectComboBox->currentIndex();
+                            }
+                            else
+                            {
+                                cout << "ERROR: " << "could not write threshold & reference values to PPS Analyzer" << endl;
+                            }
+                        }
+                        else
+                        {
+                            cout << "ERROR: " << "could not write threshold & reference values to PPS Analyzer" << endl;
+                        }
+
+                        // unlock
+                        pps_tab->pps_boards.at(i)->mutex_ctrl_threshold.unlock();
+                    }
+                }
+            }
+            ui->PpsAnalyzerRefSelectComboBox->setCurrentIndex(pps_tab->pps_boards.at(i)->pps_ref_channel);
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.clear();
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->com_port);
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append("_REF (");
+            if (pps_tab->pps_boards.at(i)->pps_ref_channel == 0)
+            {
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->com_port);
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append("_PPS_REF");
+            }
+            else
+            {
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->pps_gui[pps_tab->pps_boards.at(i)->pps_ref_channel].pps_name);
+            }
+            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(")");
+        }
+    }
+}
+
 void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
 {
+    ui->PpsAnalyzerVersionValue->setText("NA");
+
     ui->PpsDelayPpsRefValue->setEnabled(false);
     ui->PpsDelayPps1Value->setEnabled(false);
     ui->PpsDelayPps2Value->setEnabled(false);
@@ -129,6 +227,7 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
     ui->PpsNamePps7Value->setEnabled(false);
     ui->PpsNamePps8Value->setEnabled(false);
 
+    ui->PpsGraphRefCheckBox->setEnabled(false);
     ui->PpsGraph1CheckBox->setEnabled(false);
     ui->PpsGraph2CheckBox->setEnabled(false);
     ui->PpsGraph3CheckBox->setEnabled(false);
@@ -138,6 +237,7 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
     ui->PpsGraph7CheckBox->setEnabled(false);
     ui->PpsGraph8CheckBox->setEnabled(false);
 
+    ui->PpsGraphRefCheckBox->setChecked(false);
     ui->PpsGraph1CheckBox->setChecked(false);
     ui->PpsGraph2CheckBox->setChecked(false);
     ui->PpsGraph3CheckBox->setChecked(false);
@@ -151,6 +251,15 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
     {
         if (ui->PpsAnalyzerComboBox->currentText() == pps_tab->pps_boards.at(i)->com_port)
         {
+            if (pps_tab->pps_boards.at(i)->version != 0)
+            {
+                ui->PpsAnalyzerVersionValue->setText(QString("0x%1").arg(pps_tab->pps_boards.at(i)->version, 8, 16, QLatin1Char('0')));
+            }
+            else
+            {
+                ui->PpsAnalyzerVersionValue->setText("NA");
+            }
+
             ui->PpsAnalyzerRefSelectComboBox->setCurrentIndex(pps_tab->pps_boards.at(i)->pps_ref_channel);
 
             ui->PpsDelayPpsRefValue->setEnabled(true);
@@ -189,6 +298,7 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
             ui->PpsNamePps7Value->setText(pps_tab->pps_boards.at(i)->pps_gui[7].pps_name);
             ui->PpsNamePps8Value->setText(pps_tab->pps_boards.at(i)->pps_gui[8].pps_name);
 
+            ui->PpsGraphRefCheckBox->setEnabled(true);
             ui->PpsGraph1CheckBox->setEnabled(true);
             ui->PpsGraph2CheckBox->setEnabled(true);
             ui->PpsGraph3CheckBox->setEnabled(true);
@@ -197,6 +307,10 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
             ui->PpsGraph6CheckBox->setEnabled(true);
             ui->PpsGraph7CheckBox->setEnabled(true);
             ui->PpsGraph8CheckBox->setEnabled(true);
+            if (pps_tab->pps_boards.at(i)->pps_gui[0].pps_show != 0)
+            {
+                ui->PpsGraphRefCheckBox->setChecked(true);
+            }
             if (pps_tab->pps_boards.at(i)->pps_gui[1].pps_show != 0)
             {
                 ui->PpsGraph1CheckBox->setChecked(true);
@@ -233,23 +347,20 @@ void Upa_PpsConfigScreen::pps_analyzer_changed(int index)
     }
 }
 
-void Upa_PpsConfigScreen::pps_reference_changed(int index)
-{
-    for (int i = 0; i < pps_tab->pps_boards.size(); i++)
-    {
-        if (ui->PpsAnalyzerComboBox->currentText() == pps_tab->pps_boards.at(i)->com_port)
-        {
-            pps_tab->pps_boards.at(i)->pps_ref_channel = ui->PpsAnalyzerRefSelectComboBox->currentIndex();
-        }
-    }
-}
-
 void Upa_PpsConfigScreen::pps_graph_changed(void)
 {
     for (int i = 0; i < pps_tab->pps_boards.size(); i++)
     {
         if (ui->PpsAnalyzerComboBox->currentText() == pps_tab->pps_boards.at(i)->com_port)
         {
+            if (ui->PpsGraphRefCheckBox->isChecked() == true)
+            {
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_show = 1;
+            }
+            else
+            {
+                pps_tab->pps_boards.at(i)->pps_gui[0].pps_show = 0;
+            }
             if (ui->PpsGraph1CheckBox->isChecked() == true)
             {
                 pps_tab->pps_boards.at(i)->pps_gui[1].pps_show = 1;
@@ -318,6 +429,21 @@ void Upa_PpsConfigScreen::pps_graph_changed(void)
     }
 }
 
+void Upa_PpsConfigScreen::pps_calc_variance_changed(void)
+{
+    if (ui->PpsCalculateVarianceCheckBox->isChecked() == true)
+    {
+        pps_tab->ui->OffsetVariance->setVisible(true);
+        pps_tab->ui->Upa_PpsGuiTab->addTab(pps_tab->ui->OffsetVariance, "Offset Variance");
+    }
+    else
+    {
+        pps_tab->ui->PpsOffsetVarianceAutoCalculateCheckBox->setChecked(false);
+        pps_tab->ui->Upa_PpsGuiTab->removeTab(2);
+        pps_tab->ui->OffsetVariance->setVisible(false);
+    }
+}
+
 void Upa_PpsConfigScreen::pps_load_config(void)
 {
     QFile temp_file("./UpaDelayConfig.cfg");
@@ -352,6 +478,23 @@ void Upa_PpsConfigScreen::pps_load_config(void)
                             }
                         }
                     }
+                    else if (temp_string.section(sep, 1, 1) == "REF")
+                    {
+                        pps_tab->pps_boards.at(i)->pps_ref_channel = temp_string.section(sep, 2, 2).toInt(nullptr, 10);
+                        pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.clear();
+                        pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->com_port);
+                        pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append("_REF (");
+                        if (pps_tab->pps_boards.at(i)->pps_ref_channel == 0)
+                        {
+                            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->com_port);
+                            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append("_PPS_REF");
+                        }
+                        else
+                        {
+                            pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(pps_tab->pps_boards.at(i)->pps_gui[pps_tab->pps_boards.at(i)->pps_ref_channel].pps_name);
+                        }
+                        pps_tab->pps_boards.at(i)->pps_gui[0].pps_name.append(")");
+                    }
                 }
             }
         }
@@ -379,6 +522,12 @@ void Upa_PpsConfigScreen::pps_save_config(void)
             temp_string.append(pps_tab->pps_boards.at(i)->pps_gui[j].pps_name);
             temp_string.append("\n");
         }
+        temp_string.append(pps_tab->pps_boards.at(i)->com_port);
+        temp_string.append(" ");
+        temp_string.append("REF");
+        temp_string.append(" ");
+        temp_string.append(QString::number(pps_tab->pps_boards.at(i)->pps_ref_channel));
+        temp_string.append("\n");
     }
 
     QFile temp_file("./UpaDelayConfig.cfg");

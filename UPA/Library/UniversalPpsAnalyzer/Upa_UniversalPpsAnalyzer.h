@@ -51,7 +51,7 @@ class Upa_PpsTab;
 class Upa_HelpMenuAbout;
 
 
-#define Upa_Version_Nr               "3.0.00"
+#define Upa_Version_Nr               "4.2.00"
 
 #define Upa_MainHeight               820
 #define Upa_MainWidth                1380

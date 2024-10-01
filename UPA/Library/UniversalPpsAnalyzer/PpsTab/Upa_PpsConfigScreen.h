@@ -32,9 +32,10 @@ private slots:
     // PPS Delay screen
     void pps_done_button_clicked(void);
     void pps_change_delays_and_names_button_clicked(void);
+    void pps_change_reference_button_clicked(void);
     void pps_analyzer_changed(int index);
-    void pps_reference_changed(int index);
     void pps_graph_changed(void);
+    void pps_calc_variance_changed(void);
 };
 
 #endif // UPA_PPSCONFIGSCREEN_H

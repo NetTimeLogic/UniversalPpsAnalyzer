@@ -32,6 +32,7 @@
 #include <QtCharts/QLineSeries>
 #include <QtCore/QDateTime>
 #include <QtCharts/QValueAxis>
+#include <QtCharts/QLogValueAxis>
 #include <Upa_UniversalPpsAnalyzer.h>
 #include <Upa_PpsConfigScreen.h>
 #include <Upa_PpsThresholdScreen.h>
@@ -102,6 +103,13 @@ typedef struct Upa_PpsGuiSample
     int pps_offset;
 } Upa_PpsGuiSample;
 
+typedef struct Upa_PpsGuiVarianceSample
+{
+    int pps_active;
+    double x;
+    double y;
+} Upa_PpsGuiVarianceSample;
+
 class Upa_PpsTs
 {
 public:
@@ -161,7 +169,13 @@ public:
     double pps_avg_diff;
     double pps_std_deviation;
     QList<Upa_PpsGuiSample> pps_samples;
-    QLineSeries* pps_offset_series;
+    QList<Upa_PpsGuiSample> pps_samples_chart;
+    QList<Upa_PpsGuiSample> pps_samples_histogram;
+    QList<Upa_PpsGuiSample> pps_samples_variance;
+    QList<Upa_PpsGuiVarianceSample> pps_samples_calc_variance;
+    QLineSeries* pps_offset_chart_series;
+    QLineSeries* pps_offset_histogram_series;
+    QLineSeries* pps_offset_variance_series;
 
     Upa_PpsGui();
     ~Upa_PpsGui();
@@ -173,6 +187,7 @@ class Upa_PpsBoard
 {
 public:
     QString com_port;
+    unsigned int version;
     unsigned int pps_ref_channel;
     Upa_PpsTs pps_ts[Upa_PpsPerBoard];
     Upa_PpsCtrl pps_ctrl[Upa_PpsPerBoard];
@@ -181,7 +196,10 @@ public:
     QMutex mutex_ctrl_log;
     Upa_PpsLog pps_log[Upa_PpsPerBoard];
     QMutex mutex_ctrl_gui;
-    QMutex mutex_gui;
+    QMutex mutex_gui_chart;
+    QMutex mutex_gui_histogram;
+    QMutex mutex_gui_variance;
+    QMutex mutex_calc_variance;
     Upa_PpsGui pps_gui[Upa_PpsPerBoard];
 
     Upa_PpsBoard();
@@ -205,45 +223,66 @@ public:
 public:
     Upa_UniversalPpsAnalyzer* upa;
     QList<Upa_PpsBoard*> pps_boards;
-
-private:
-    Ui::Upa_PpsTab *ui;
-    Upa_PpsConfigScreen* ui_config;
-    Upa_PpsThresholdScreen* ui_threshold;
-
-    // PPS tab
-    QTimer* pps_ctrl_timer;
-    QTimer* pps_log_timer;
-    QTimer* pps_gui_timer;
-    QTimer* pps_threshold_timer;
-
-    QFile pps_log_file;
-    unsigned int pps_log_values;
-    unsigned int pps_compensate_values;
     unsigned int pps_zoom_factor;
+    Ui::Upa_PpsTab *ui;
 
     QChart* pps_offset_chart;
     QChartView* pps_offset_chart_view;
     QValueAxis* pps_offset_chart_x_axis;
     QValueAxis* pps_offset_chart_y_axis;
 
+    QChart* pps_offset_histogram;
+    QChartView* pps_offset_histogram_view;
+    QValueAxis* pps_offset_histogram_x_axis;
+    QValueAxis* pps_offset_histogram_y_axis;
+
+    QChart* pps_offset_variance;
+    QChartView* pps_offset_variance_view;
+    QLogValueAxis * pps_offset_variance_x_axis;
+    QLogValueAxis * pps_offset_variance_y_axis;
+    unsigned int pps_offset_variance_calc_time;
+
+    QTimer* pps_gui_timer_chart;
+    QTimer* pps_gui_timer_histogram;
+    QTimer* pps_calc_timer_variance;
+    QTimer* pps_gui_timer_variance;
+
+private:
+    Upa_PpsConfigScreen* ui_config;
+    Upa_PpsThresholdScreen* ui_threshold;
+
+    // PPS tab
+    QTimer* pps_ctrl_timer;
+    QTimer* pps_log_timer;
+    QTimer* pps_threshold_timer;
+    QFuture<void> calc_variance_thread;
+
+    QFile pps_log_file;
+    unsigned int pps_log_values;
+    unsigned int pps_compensate_values;
+
     int pps_fetch(Upa_PpsTs* pps_ts);
 
 private slots:
     // PPS tab
     void pps_clear_button_clicked(void);
-    void pps_save_view_button_clicked(void);
+    void pps_save_views_button_clicked(void);
     void pps_save_values_button_clicked(void);
     void pps_log_button_clicked(void);
     void pps_compensate_values_button_clicked(void);
     void pps_ctrl_timer_run(void);
     void pps_log_timer_run(void);
-    void pps_gui_timer_run(void);
+    void pps_gui_timer_chart_run(void);
+    void pps_gui_timer_histogram_run(void);
+    void pps_gui_timer_variance_run(void);
+    void pps_calc_timer_variance_run(void);
     void pps_threshold_timer_run(void);
     void pps_delay_button_clicked(void);
     void pps_threshold_button_clicked(void);
     void pps_zoom_in_button_clicked(void);
     void pps_zoom_out_button_clicked(void);
+    void pps_calc_variance_button_clicked(void);
+    void pps_auto_calc_variance_changed(void);
 };
 
 #endif // UPA_PPS_H
